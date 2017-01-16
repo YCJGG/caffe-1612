@@ -2,7 +2,7 @@
 
 My own Caffe development branch with some tools:
 
-- Multi Mean Field Iteration [CRF-RNN caffe](https://github.com/torrvision/crfasrnn)
+- Multi Mean Field Iteration (transfer from [CRF-RNN caffe](https://github.com/torrvision/crfasrnn))
 - Segmetation Accuracy Layer (micro averaged F1 score)
 - Blob Align (python layer)
 
