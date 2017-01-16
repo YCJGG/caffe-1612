@@ -1,3 +1,11 @@
+## My Caffe development repo @ KFXW
+
+My own Caffe development branch with some tools:
+
+- Multi Mean Field Iteration [CRF-RNN caffe](https://github.com/torrvision/crfasrnn)
+- Segmetation Accuracy Layer (micro averaged F1 score)
+- Blob Align (python layer)
+
 # Caffe
 
 [![Build Status](https://travis-ci.org/BVLC/caffe.svg?branch=master)](https://travis-ci.org/BVLC/caffe)
