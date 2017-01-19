@@ -4,7 +4,10 @@ My own Caffe development branch with some tools:
 
 - Multi Mean Field Iteration (transfer from [CRF-RNN caffe](https://github.com/torrvision/crfasrnn))
 - Segmetation Accuracy Layer (micro averaged F1 score)
+- modified range loss for parsing (under construction)
 - Blob Align (python layer)
+- imgResize (python layer)
+- image seg data layer (transfer from [Deeplab v1 caffe](https://github.com/TheLegendAli/DeepLab-Context))
 
 # Caffe
 
