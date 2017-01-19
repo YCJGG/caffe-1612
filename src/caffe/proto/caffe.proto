@@ -838,6 +838,18 @@ message ImageDataParameter {
   // data.
   optional bool mirror = 6 [default = false];
   optional string root_folder = 12 [default = ""];
+
+  // image_seg_data_layer
+  // This is the value set for pixels or images where we don't know the label
+  optional int32 ignore_label = 15 [default = 255];
+  enum LabelType {
+    NONE = 0;
+    IMAGE = 1;
+    PIXEL = 2;
+  }
+  optional LabelType label_type = 16 [default = IMAGE];
+  optional bool has_label = 13 [default = true];
+  optional int32 max_labels = 14 [default = 1];
 }
 
 message InfogainLossParameter {

@@ -38,6 +38,9 @@ class InternalThread {
       with the code you want your thread to run. */
   virtual void InternalThreadEntry() {}
 
+  /** Will not return until the internal thread has exited. */
+  bool WaitForInternalThreadToExit();
+
   /* Should be tested when running loops to exit when requested. */
   bool must_stop();
 

@@ -43,6 +43,18 @@ BasePrefetchingDataLayer<Dtype>::BasePrefetchingDataLayer(
 }
 
 template <typename Dtype>
+void BasePrefetchingDataLayer<Dtype>::CreatePrefetchThread() {
+  this->phase_ = this->phase_;
+  this->data_transformer_->InitRand();
+  StartInternalThread();
+}
+
+template <typename Dtype>
+void BasePrefetchingDataLayer<Dtype>::JoinPrefetchThread() {
+  CHECK(WaitForInternalThreadToExit()) << "Thread joining failed";
+}
+
+template <typename Dtype>
 void BasePrefetchingDataLayer<Dtype>::LayerSetUp(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
   BaseDataLayer<Dtype>::LayerSetUp(bottom, top);
