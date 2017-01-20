@@ -21,7 +21,6 @@ void SegAccuracyLayer<Dtype>::LayerSetUp(
     ignore_label_.insert(seg_accuracy_param.ignore_label(c));
   }
   
-  /// bear added.
   this->iter_ = 0;
   this->test_iter_ = seg_accuracy_param.test_iter();
 }
@@ -52,9 +51,7 @@ void SegAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 
   int data_index, label_index;
 
-  /// bear revised.
   // remove old predictions if reset() flag is true
-  //if (this->layer_param_.seg_accuracy_param().reset()) {
   if (this->iter_ == 0) {
     confusion_matrix_.clear();
   }
@@ -100,10 +97,10 @@ void SegAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   confusion_matrix_.printCounts();
   */
 
-  /// bear revised: we report all the resuls
   /*
 	background -- 0, face -- 1, hair -- 2, nose -- 3, upper lip -- 4, mouth -- 5, lower lip -- 6, left eye -- 7, right eye -- 8, left blrow -- 9, right brow -- 10
   */
+  /* for Helen
   if (this->iter_+1 == this->test_iter_){
     LOG(INFO) << "# F1 Score - background: "
               << (Dtype)confusion_matrix_.classF1(0, 0);
@@ -135,6 +132,22 @@ void SegAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	      << (Dtype)confusion_matrix_.classF1(9, 10) << ","
 	      << (Dtype)confusion_matrix_.classF1(4, 6) << ","
 	      << (Dtype)confusion_matrix_.classF1(3, 10);
+    this->iter_ = 0;
+  }   -end for Helen- */
+  /* for LFW */
+  if (this->iter_+1 == this->test_iter_){
+    LOG(INFO) << "# F1 Score - background: "
+              << (Dtype)confusion_matrix_.classF1(0, 0);
+    LOG(INFO) << "# F1 Score - hair: "
+              << (Dtype)confusion_matrix_.classF1(1, 1);
+    LOG(INFO) << "# F1 Score - face skin: "
+              << (Dtype)confusion_matrix_.classF1(2, 2);
+    LOG(INFO) << "# F1 Score - mean: "
+              << (Dtype)confusion_matrix_.classF1(1, 2);
+    LOG(INFO) << (Dtype)confusion_matrix_.classF1(0, 0) << ","
+              << (Dtype)confusion_matrix_.classF1(1, 1) << ","
+	      << (Dtype)confusion_matrix_.classF1(2, 2) << ","
+	      << (Dtype)confusion_matrix_.classF1(1, 2);
     this->iter_ = 0;
   }
   else this->iter_++;
