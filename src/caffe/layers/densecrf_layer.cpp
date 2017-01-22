@@ -50,7 +50,7 @@ void DenseCRFLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     has_image = true;
     CHECK_GT(bi_w_.size(), 0)
       << "has image as input, but no bilateral parameters specified.";
-    CHECK_EQ(bottom[2]->channels(), 3)
+    CHECK_EQ(bottom[1]->channels(), 3)
       << "Can Only support color images for now.";
   }
   
@@ -66,8 +66,7 @@ template <typename Dtype>
 void DenseCRFLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom, 
 				   const vector<Blob<Dtype>*>& top) {
   // assume bottom[0]: output from DCNN (after upsampling)
-  //        bottom[1]: dimension for each image (i.e., store effective dimensions)
-  //        bottom[2]: images after data-transformer (optional, if no bilateral)
+  //        bottom[1]: images after data-transformer (optional, if no bilateral)
   //        top[0]   : inference values
   //
   
@@ -76,15 +75,10 @@ void DenseCRFLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   pad_height_   = bottom[0]->height();
   pad_width_    = bottom[0]->width();
 
-  CHECK_EQ(bottom[0]->num(), bottom[1]->num())
-    << "The DCNN output and data should have the same number.";
-  CHECK_EQ(bottom[1]->num(), bottom[2]->num())
-    << "The data and data dimension should have the same number.";
-
   if (has_image) {
-    CHECK_EQ(bottom[0]->height(), bottom[2]->height())
+    CHECK_EQ(bottom[0]->height(), bottom[1]->height())
       << "DCNN output after upsampling should have the same height as image.";
-    CHECK_EQ(bottom[0]->width(), bottom[2]->width())
+    CHECK_EQ(bottom[0]->width(), bottom[1]->width())
       << "DCNN output after upsampling should have the same width as image.";
   }
 
@@ -116,39 +110,22 @@ template <typename Dtype>
 void DenseCRFLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 				       const vector<Blob<Dtype>*>& top) {
   // assume bottom[0]: output from DCNN
-  //        bottom[1]: dimension for each image
-  //        bottom[2]: images after data-transformer (optional, if no bilateral)
+  //        bottom[1]: images after data-transformer (optional, if no bilateral)
   //        top[0]   : inference values
   //
-
   const Dtype* bottom_data = bottom[0]->cpu_data();
-  const Dtype* data_dims   = bottom[1]->cpu_data();
-
   Dtype* top_data = top[0]->mutable_cpu_data();
 
   int bottom_data_offset;
-  int data_dim_offset;
   int top_data_offset;
 
   for (int n = 0; n < num_; ++n) {
     bottom_data_offset  = bottom[0]->offset(n);
-    data_dim_offset     = bottom[1]->offset(n);
     top_data_offset     = top[0]->offset(n);
 
-    // check dimension of data arrays
-    // if too small, reallocate memory
-    int real_img_height = *(data_dims + data_dim_offset);
-    int real_img_width  = *(data_dims + data_dim_offset + 1);     
     // Get N, W, H, M
-    if (pad_height_ <= real_img_height && pad_width_ <= real_img_width) {
-      // image may be cropped
-      H_ = pad_height_;
-      W_ = pad_width_;
-    } else {
-      // image is padded with redundant values
-      H_ = real_img_height;
-      W_ = real_img_width;
-    }
+    H_ = pad_height_;
+    W_ = pad_width_;
     N_ = W_ * H_;
     
     // check if the pre-allocated memory is not enough
@@ -314,7 +291,7 @@ void DenseCRFLayer<Dtype>::SetupPairwiseFunctions(const vector<Blob<Dtype>*>& bo
   }
 
   if (has_image) {
-    const Dtype* im = bottom[2]->cpu_data();
+    const Dtype* im = bottom[1]->cpu_data();
     int channel_offset = pad_height_ * pad_width_;
 
     // add pairwise Bilateral
