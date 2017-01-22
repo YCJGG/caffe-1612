@@ -8,6 +8,7 @@ My own Caffe development branch with some tools:
 - Blob Align (python layer)
 - imgResize (python layer)
 - image seg data layer (transfer from [Deeplab v1 caffe](https://github.com/TheLegendAli/DeepLab-Context))
+- dense crf layer (transfer from [Deeplab v1 caffe](https://github.com/TheLegendAli/DeepLab-Context))
 
 # Caffe
 
