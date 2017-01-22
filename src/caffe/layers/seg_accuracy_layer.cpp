@@ -100,7 +100,7 @@ void SegAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   /*
 	background -- 0, face -- 1, hair -- 2, nose -- 3, upper lip -- 4, mouth -- 5, lower lip -- 6, left eye -- 7, right eye -- 8, left blrow -- 9, right brow -- 10
   */
-  /* for Helen
+  /* for Helen   -end for Helen- */
   if (this->iter_+1 == this->test_iter_){
     LOG(INFO) << "# F1 Score - background: "
               << (Dtype)confusion_matrix_.classF1(0, 0);
@@ -133,8 +133,8 @@ void SegAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	      << (Dtype)confusion_matrix_.classF1(4, 6) << ","
 	      << (Dtype)confusion_matrix_.classF1(3, 10);
     this->iter_ = 0;
-  }   -end for Helen- */
-  /* for LFW */
+  }
+  /* for LFW 
   if (this->iter_+1 == this->test_iter_){
     LOG(INFO) << "# F1 Score - background: "
               << (Dtype)confusion_matrix_.classF1(0, 0);
@@ -150,6 +150,7 @@ void SegAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	      << (Dtype)confusion_matrix_.classF1(1, 2);
     this->iter_ = 0;
   }
+  - end for LFW - */
   else this->iter_++;
 }
 
