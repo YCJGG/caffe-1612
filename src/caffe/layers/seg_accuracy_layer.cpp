@@ -29,18 +29,16 @@ void SegAccuracyLayer<Dtype>::LayerSetUp(
   this->test_iter_ = seg_accuracy_param.test_iter();
 
   // init plugin config file of different dataset
-  strcat(this->plugin_name, this->PLUGIN_ROOT);
   strcat(this->plugin_name, seg_accuracy_param.plugin_name().c_str());
-  strcat(this->plugin_name, ".wzconfig");
-  CHECK(access(this->plugin_name,0) == -1) << "Seg Acc Layer config file "
+  //strcat(this->plugin_name, ".wzconfig");
+  CHECK(access(this->plugin_name,0) == 0) << "Seg Acc Layer config file "
 			<< this->plugin_name << "doesn't exist.";
   LOG(INFO) << "Using Seg Acc Layer config file " << this->plugin_name;
 
   // read plugin config file
   char buffer[1024];
   std::ifstream in(this->plugin_name);
-  while(!in.eof()) {
-    in.getline(buffer, 1024);
+  while(in.getline(buffer, 1024)) {
     // split by '&'
     char* split_buffer = strtok(buffer, "&");
     for (int i = 0; i < 3; i++) {
