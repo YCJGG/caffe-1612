@@ -60,6 +60,7 @@ class ConfusionMatrix {
  
   double precision(int n) const;
   double recall(int n) const;
+  double jaccard(int from, int to) const;
   double jaccard(int n) const;
  
   const unsigned long& operator()(int x, int y) const;

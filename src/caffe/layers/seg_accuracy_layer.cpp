@@ -2,6 +2,9 @@
 #include <functional>
 #include <utility>
 #include <vector>
+#include <iostream>
+#include <string.h>
+#include <stdlib.h>
 
 #include "caffe/layer.hpp"
 #include "caffe/util/io.hpp"
@@ -21,8 +24,36 @@ void SegAccuracyLayer<Dtype>::LayerSetUp(
     ignore_label_.insert(seg_accuracy_param.ignore_label(c));
   }
   
+  // init iter counter
   this->iter_ = 0;
   this->test_iter_ = seg_accuracy_param.test_iter();
+
+  // init plugin config file of different dataset
+  strcat(this->plugin_name, this->PLUGIN_ROOT);
+  strcat(this->plugin_name, seg_accuracy_param.plugin_name().c_str());
+  strcat(this->plugin_name, ".wzconfig");
+  CHECK(access(this->plugin_name,0) == -1) << "Seg Acc Layer config file "
+			<< this->plugin_name << "doesn't exist.";
+  LOG(INFO) << "Using Seg Acc Layer config file " << this->plugin_name;
+
+  // read plugin config file
+  char buffer[1024];
+  std::ifstream in(this->plugin_name);
+  while(!in.eof()) {
+    in.getline(buffer, 1024);
+    // split by '&'
+    char* split_buffer = strtok(buffer, "&");
+    for (int i = 0; i < 3; i++) {
+      CHECK(split_buffer != NULL) << "Plugin config file bad format, item " << i;
+      // item example: print info & fromIndex & toIndex
+      if(i==0) {
+	string tmp(split_buffer);
+	this->plugin_item_info.insert(this->plugin_item_info.end(), tmp);
+      } else if(i==1)  this->plugin_item_from.insert(this->plugin_item_from.end(), atoi(split_buffer));
+	else if(i==2)  this->plugin_item_to.insert(this->plugin_item_to.end(), atoi(split_buffer));
+      split_buffer = strtok(NULL, "&"); // loop to next string split
+    }
+  }
 }
 
 template <typename Dtype>
@@ -92,65 +123,36 @@ void SegAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     bottom_label += bottom[1]->offset(1);
   }
 
-  /* for debug
-  LOG(INFO) << "confusion matrix info:" << confusion_matrix_.numRows() << "," << confusion_matrix_.numCols();
-  confusion_matrix_.printCounts();
-  */
+  if (this->iter_+1 == this->test_iter_) {
+    vector<Dtype> scores;
+    // evaluation and display
+    for (int i = 0; i < this->plugin_item_info.size(); i++) {
+        switch(this->layer_param_.seg_accuracy_param().eval_metrc()) {
+            case SegAccuracyParameter_EvalMetric_F1_SCORE:
+		scores.insert(scores.end(),
+		 (Dtype)confusion_matrix_.classF1(this->plugin_item_from[i], this->plugin_item_to[i]));
+		break;
+            case SegAccuracyParameter_EvalMetric_JACCARD:
+				scores.insert(scores.end(),
+		 (Dtype)confusion_matrix_.jaccard(this->plugin_item_from[i], this->plugin_item_to[i]));
+		break;
+	    default:
+	    {
+		scores.insert(scores.end(),0);
+		LOG(INFO) << "Warning: Unkonw evaluation metric";
+	    }
+        }
+	LOG(INFO) << this->plugin_item_info[i] << (Dtype)scores[i];
+    }
+    // display all results
+    char log_buffer[4096];
+    for (int i = 0; i < scores.size(); i++) {
+	sprintf(log_buffer, "%.4lf,", scores[i]);
+    }
+    LOG(INFO) << log_buffer;
 
-  /*
-	background -- 0, face -- 1, hair -- 2, nose -- 3, upper lip -- 4, mouth -- 5, lower lip -- 6, left eye -- 7, right eye -- 8, left blrow -- 9, right brow -- 10
-  */
-  /* for Helen   -end for Helen- */
-  if (this->iter_+1 == this->test_iter_){
-    LOG(INFO) << "# F1 Score - background: "
-              << (Dtype)confusion_matrix_.classF1(0, 0);
-    LOG(INFO) << "# F1 Score - face: "
-              << (Dtype)confusion_matrix_.classF1(1, 1);
-    LOG(INFO) << "# F1 Score - nose: "
-              << (Dtype)confusion_matrix_.classF1(3, 3);
-    LOG(INFO) << "# F1 Score - upper lip: "
-              << (Dtype)confusion_matrix_.classF1(4, 4);
-    LOG(INFO) << "# F1 Score - mouth: "
-              << (Dtype)confusion_matrix_.classF1(5, 5);
-    LOG(INFO) << "# F1 Score - lower lip: "
-              << (Dtype)confusion_matrix_.classF1(6, 6);
-    LOG(INFO) << "# F1 Score - eye: "
-              << (Dtype)confusion_matrix_.classF1(7, 8);
-    LOG(INFO) << "# F1 Score - brows: "
-              << (Dtype)confusion_matrix_.classF1(9, 10);
-    LOG(INFO) << "# F1 Score - mouth all: "
-              << (Dtype)confusion_matrix_.classF1(4, 6);
-    LOG(INFO) << "# F1 Score - mean: "
-              << (Dtype)confusion_matrix_.classF1(3, 10);
-    LOG(INFO) << (Dtype)confusion_matrix_.classF1(0, 0) << ","
-              << (Dtype)confusion_matrix_.classF1(1, 1) << ","
-	      << (Dtype)confusion_matrix_.classF1(3, 3) << ","
-	      << (Dtype)confusion_matrix_.classF1(4, 4) << ","
-	      << (Dtype)confusion_matrix_.classF1(5, 5) << ","
-	      << (Dtype)confusion_matrix_.classF1(6, 6) << ","
-	      << (Dtype)confusion_matrix_.classF1(7, 8) << ","
-	      << (Dtype)confusion_matrix_.classF1(9, 10) << ","
-	      << (Dtype)confusion_matrix_.classF1(4, 6) << ","
-	      << (Dtype)confusion_matrix_.classF1(3, 10);
     this->iter_ = 0;
   }
-  /* for LFW 
-  if (this->iter_+1 == this->test_iter_){
-    LOG(INFO) << "# F1 Score - background: "
-              << (Dtype)confusion_matrix_.classF1(0, 0);
-    LOG(INFO) << "# F1 Score - hair: "
-              << (Dtype)confusion_matrix_.classF1(1, 1);
-    LOG(INFO) << "# F1 Score - face skin: "
-              << (Dtype)confusion_matrix_.classF1(2, 2);
-    LOG(INFO) << "# F1 Score - mean: "
-              << (Dtype)confusion_matrix_.classF1(1, 2);
-    LOG(INFO) << (Dtype)confusion_matrix_.classF1(0, 0) << ","
-              << (Dtype)confusion_matrix_.classF1(1, 1) << ","
-	      << (Dtype)confusion_matrix_.classF1(2, 2) << ","
-	      << (Dtype)confusion_matrix_.classF1(1, 2);
-    this->iter_ = 0;
-  }
-  - end for LFW - */
   else this->iter_++;
 }
 

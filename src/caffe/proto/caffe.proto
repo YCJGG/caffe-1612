@@ -447,6 +447,12 @@ message SegAccuracyParameter {
   // will ignore pixels with this value when computing accuracy
   repeated int32 ignore_label = 1;
   optional int32 test_iter = 2 [default = 1];
+  optional string plugin_name = 3 [default = ""];
+  optional int32 eval_metrc = 4 [default = 0];
+  enum EvalMetric {
+    F1_SCORE = 0;  // used in face parsing: 2TP/(2TP+TN+FN)
+    JACCARD = 1; // mean IoU used in VOC: TP/(TP+TN+FN)
+  }
 }
 
 message CenterLossParameter {
@@ -1287,6 +1293,7 @@ message V1LayerParameter {
     CONVOLUTION = 4;
     DATA = 5;
     DECONVOLUTION = 39;
+    DENSECRF = 40;
     DROPOUT = 6;
     DUMMY_DATA = 32;
     EUCLIDEAN_LOSS = 7;

@@ -356,7 +356,7 @@ double ConfusionMatrix::classF1(int from, int to) const {
     }
     den += rowSum(i) + colSum(i);
   }
-  return 2.0 * num / den;
+  return 2.0 * num / (den + 1e-10);
 }
 
 double ConfusionMatrix::precision(int n) const {
@@ -369,6 +369,20 @@ double ConfusionMatrix::recall(int n) const {
   CHECK(_matrix.size() > (size_t)n);
   return (_matrix[n].size() > (size_t)n) ?
     (double)_matrix[n][n] / (double)rowSum(n) : 0.0;
+}
+
+double ConfusionMatrix::jaccard(int from, int to) const {
+  double intersectionSize = 0, unionSize = 0;
+  for (size_t i = from; i <= to; i++) {
+    double delta_intersectionSize = 0;
+    for (size_t j = from; j <= to; j++) {
+  	delta_intersectionSize += (double)_matrix[i][j];
+    }
+    intersectionSize += delta_intersectionSize;
+    unionSize += (double)(rowSum(i) + colSum(i) - delta_intersectionSize);
+  }
+  return (intersectionSize == unionSize) ? 1.0 :
+    intersectionSize / unionSize;
 }
 
 double ConfusionMatrix::jaccard(int n) const {

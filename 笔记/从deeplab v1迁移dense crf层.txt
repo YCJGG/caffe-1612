@@ -24,7 +24,7 @@ densecrf_layer.hpp中修改MinBottomBlobs()为ExactNumBottomBlobs()，返回2
 替换为
   virtual inline const char* type() const { return "DenseCRF"; }
 
-4.将DenseCRFParameter的proto定义添加到LayerParameter中，不需要添加层定义的proto: DENSE_CRF = 45;
+4.将DenseCRFParameter的proto定义添加到LayerParameter中，需要在V1LayerParameter添加层定义的proto: DENSE_CRF = 40;
 
 5.使用方法
 voc最佳参数
@@ -33,7 +33,7 @@ layers {
   bottom: "data"
   top: "crf_inf"
   name: "crf"
-  type: DENSE_CRF
+  type: "DenseCRF"
   dense_crf_param { 
     max_iter: 10
     pos_w: 3

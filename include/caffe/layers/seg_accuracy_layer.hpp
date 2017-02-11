@@ -2,6 +2,7 @@
 #define CAFFE_SEG_ACCURACY_LAYER_HPP_
 
 #include <vector>
+#include <string>
 
 #include "caffe/blob.hpp"
 #include "caffe/common.hpp"
@@ -15,7 +16,7 @@ template <typename Dtype>
 class SegAccuracyLayer : public Layer<Dtype> {
  public:
   explicit SegAccuracyLayer(const LayerParameter& param)
-      : Layer<Dtype>(param) {}
+      : Layer<Dtype>(param), PLUGIN_ROOT("../../src/caffe/layers/seg_accuracy_layer_plugin/") {}
   virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
@@ -70,6 +71,13 @@ class SegAccuracyLayer : public Layer<Dtype> {
   
   int test_iter_;
   int iter_;
+
+  // read plugin config of different dataset
+  char plugin_name[512];
+  const char* PLUGIN_ROOT;
+  vector<string> plugin_item_info;
+  vector<int> plugin_item_from;
+  vector<int> plugin_item_to;
 };
 
 }  // namespace caffe
