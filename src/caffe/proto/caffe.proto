@@ -448,7 +448,7 @@ message SegAccuracyParameter {
   repeated int32 ignore_label = 1;
   optional int32 test_iter = 2 [default = 1];
   optional string plugin_name = 3 [default = ""];
-  optional int32 eval_metrc = 4 [default = 0];
+  optional EvalMetric eval_metrc = 4 [default = JACCARD];
   enum EvalMetric {
     F1_SCORE = 0;  // used in face parsing: 2TP/(2TP+TN+FN)
     JACCARD = 1; // mean IoU used in VOC: TP/(TP+TN+FN)
