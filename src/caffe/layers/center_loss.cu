@@ -27,8 +27,7 @@ __global__ void Compute_distance_data_gpu(int nthreads,
 		 int* label_counter_,
 		 float label_bottom_factor,
 		 const int label_width, const int data_width,
-		 const int* ignore_label, const int ignore_label_size,
-		 const Dtype* sub_inter, int count_) {
+		 const int* ignore_label, const int ignore_label_size) {
 	CUDA_KERNEL_LOOP(index, nthreads) {
 	    // convert data idx to label idx
 	    const int y = int(index / data_width);
@@ -48,10 +47,8 @@ __global__ void Compute_distance_data_gpu(int nthreads,
             distance_data[index] = bottom_data[index] - center[label_value*dim + c];
 	    // compute center diff
 	    if (is_param_propagate_down_) {
-		// variation_sum_data(Y(n,1,y,x), c) -= D(n,c,x,y) + 2x center_mutual_distance
+		// variation_sum_data(Y(n,1,y,x), c) -= D(n,c,x,y) + 2x center_mutual_distance{finished in backward}
 		variation_sum_data[label_value*dim + c] -= distance_data[index];
-		//if (count_ > MAX_COUNT)
-		    //variation_sum_data[label_value*dim + c] += *(sub_inter+label_value*dim+c)*2;
 		label_counter_[label_value]++;
 	    }
         }
@@ -107,7 +104,8 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   // convert ignore label vector into array
   int* cu_ignore_label = NULL;
   cudaMalloc((void**)&cu_ignore_label, this->ignore_label_.size() * sizeof(int));
-  caffe_gpu_memcpy(this->ignore_label_.size(), &this->ignore_label_[0], cu_ignore_label);
+  // NOTE!!! first param is number of byte, not number of a data
+  caffe_gpu_memcpy(this->ignore_label_.size() * sizeof(int), &this->ignore_label_[0], cu_ignore_label);
 
   // the i-th distance_data
   for (int n = 0; n < num; ++n) {
@@ -127,8 +125,7 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 		 label_counter_.mutable_gpu_data(),		//label_counter_
 		 this->label_bottom_factor,			//label_bottom_factor
 		 label_width, data_width,			//label_width, data_width
-		 cu_ignore_label, this->ignore_label_.size(),   //ignore_label, ignore_label_size
-		 center_mutual_distance.gpu_data(), count_);		//sub_inter
+		 cu_ignore_label, this->ignore_label_.size());   //ignore_label, ignore_label_size
     }
   }
 
@@ -144,6 +141,7 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 template <typename Dtype>
 void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
+
   // Gradient with respect to centers
   if (this->param_propagate_down_[0]) {
     Dtype* center_diff = this->blobs_[0]->mutable_cpu_diff();
@@ -154,21 +152,23 @@ void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     // \sum_{y_i==j}
     if (count_ > MAX_COUNT) {
 	caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
+	// second input is the balance weight between two different gradients
 	caffe_axpy(dim*label_num_, (Dtype)0.1, center_mutual_distance.cpu_data(), center_diff);
     }
+
     for (int label_value = 0; label_value < label_num_; label_value++) {
       // ignore label
       if (find(ignore_label_.begin(), ignore_label_.end(), label_value) != ignore_label_.end())  continue;
       caffe_axpy(dim, (Dtype)1./(label_counter__[label_value] + (Dtype)1.), variation_sum_data + label_value*dim, center_diff + label_value*dim);
     }
 
-//Dtype a=0, b=0, c=0;
-//for (int i = 0; i < dim; i++){
-//a+=center_mutual_distance.cpu_data()[3*dim+i];
-//b+=variation_sum_data[3*dim+i];
-//c+=center_diff[3*dim+i];
-//}
-//printf("%f %f %f\n",a,b,c);
+Dtype a=0, b=0, c=0;
+for (int i = 0; i < dim; i++){
+a+=center_mutual_distance.cpu_data()[1*dim+i];
+b+=variation_sum_data[1*dim+i];
+c+=center_diff[1*dim+i];
+}
+printf("%f %f %f\n",a,b,c);
 
 
     // reset variation_sum_

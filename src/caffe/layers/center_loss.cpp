@@ -63,8 +63,8 @@ void CenterLossLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   CHECK_EQ(bottom[1]->channels(), 1);
   // The top shape will be the bottom shape with the flattened axes dropped,
   // and replaced by a single axis with dimension num_output (N_).
-  distance_.ReshapeLike(*bottom[0]);
-  variation_sum_.ReshapeLike(*this->blobs_[0]);
+  distance_.Reshape(bottom[0]->shape());
+  variation_sum_.Reshape(this->blobs_[0]->shape());
   // bottom and label may not be in the same size, but have same ratio
   label_bottom_factor = bottom[1]->height() / float(bottom[0]->height());
 
@@ -186,12 +186,12 @@ void CenterLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       caffe_axpy(dim, (Dtype)1./(label_counter__[label_value] + (Dtype)1.), variation_sum_data + label_value*dim, center_diff + label_value*dim);
     }
 
-Dtype a=0, b=0,c=0;
-for (int i = 0; i < dim; i++){
-a+=center_mutual_distance.cpu_data()[3*dim+i];
-b+=variation_sum_data[3*dim+i];
-c+=center_diff[3*dim+i];
-}
+//Dtype a=0, b=0,c=0;
+//for (int i = 0; i < dim; i++){
+//a+=center_mutual_distance.cpu_data()[3*dim+i];
+//b+=variation_sum_data[3*dim+i];
+//c+=center_diff[3*dim+i];
+//}
 //printf("%f %f %f\n",a,b,c);
 
     // reset variation_sum_data

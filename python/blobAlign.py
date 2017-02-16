@@ -8,6 +8,7 @@
 import caffe
 import numpy as np
 from skimage.transform import resize
+import time
 
 class BlobAlignLayer(caffe.Layer):
     """
@@ -30,6 +31,7 @@ class BlobAlignLayer(caffe.Layer):
 	top[0].reshape(*top_shape)
 
     def forward(self, bottom, top):
+	#time1 = time.time()
 	# bottom[0] provides feature maps to be transformed
 	# bottom[1] provides the aim height and width
 	# two bottoms can vary in number and channel
@@ -40,11 +42,15 @@ class BlobAlignLayer(caffe.Layer):
 	    for channel in range(bottom[0].channels):
 		top[0].data[batch, channel, ...] = resize(bottom[0].data[batch, channel, ...], aim_size, order=3, preserve_range=True)
 
+	#print '#########################',time.time()-time1
+
     def backward(self, top, propagate_down, bottom):
+	#time1 = time.time()
 	# resize top's diff to the size of bottom[0]
 	aim_size = np.array(bottom[0].diff.shape[2:])
 	for batch in range(top[0].num):
 	    for channel in range(top[0].channels):
-		bottom[0].diff[batch, channel, ...] = resize(top[0].diff[batch, channel, ...], aim_size, order=3, preserve_range=True)
+		bottom[0].diff[batch, channel, ...] = resize(top[0].diff[batch, channel, ...], aim_size, order=0, preserve_range=True)
 	# bottom[1].diff = 0
 	bottom[1].diff[...] = 0
+	#print '!!!!!!!!!!!!!!!!!!!!!!!!!',time.time()-time1

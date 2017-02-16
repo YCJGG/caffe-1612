@@ -29,10 +29,11 @@ void SegAccuracyLayer<Dtype>::LayerSetUp(
   this->test_iter_ = seg_accuracy_param.test_iter();
 
   // init plugin config file of different dataset
+  memset(this->plugin_name, 0, sizeof(char)*1024);
   strcat(this->plugin_name, seg_accuracy_param.plugin_name().c_str());
   //strcat(this->plugin_name, ".wzconfig");
   CHECK(access(this->plugin_name,0) == 0) << "Seg Acc Layer config file "
-			<< this->plugin_name << "doesn't exist.";
+			<< this->plugin_name << " doesn't exist. " << access(this->plugin_name,0);
   LOG(INFO) << "Using Seg Acc Layer config file " << this->plugin_name;
 
   // read plugin config file
@@ -145,7 +146,9 @@ void SegAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     // display all results
     char log_buffer[4096];
     for (int i = 0; i < scores.size(); i++) {
-	sprintf(log_buffer, "%.4lf,", scores[i]);
+	char stmp[64];
+	sprintf(stmp, "%.4lf,", scores[i]);
+	strcat(log_buffer, stmp);
     }
     LOG(INFO) << log_buffer;
 
