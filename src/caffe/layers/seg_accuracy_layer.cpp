@@ -145,6 +145,7 @@ void SegAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     }
     // display all results
     char log_buffer[4096];
+    memset(log_buffer, 0, 1);
     for (int i = 0; i < scores.size(); i++) {
 	char stmp[64];
 	sprintf(stmp, "%.4lf,", scores[i]);
