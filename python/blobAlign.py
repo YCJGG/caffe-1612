@@ -3,7 +3,7 @@
 #     using imresize function.
 # Author: Wei Zhen @ IIE, CAS & Yingcai, UESTC
 # Finish on: 2016-03-28
-# Last modified: 2016-07-20
+# Last modified: 2017-02-18
 
 import caffe
 import numpy as np
@@ -21,6 +21,20 @@ class BlobAlignLayer(caffe.Layer):
 	    raise Exception("Blob align layer only accepts one top")
 	if len(bottom) != 2:
 	    raise Exception("Blob align layer accepts two bottoms")
+	# select interpolation algorithm
+	self.inter_order = 1	# default bilinear
+	if self.param_str == "nearest":
+	    self.inter_order = 0
+	elif self.param_str == "bilinear":
+	    self.inter_order = 1
+	elif self.param_str == "biquadratic":
+	    self.inter_order = 2
+	elif self.param_str == "bicubic":
+	    self.inter_order = 3
+	elif self.param_str == "biquartic":
+	    self.inter_order = 4
+	elif self.param_str == "biquintic":
+	    self.inter_order = 5
 
     def reshape(self, bottom, top):
 	# top/result has the same height and width as the second bottom/input
@@ -40,7 +54,7 @@ class BlobAlignLayer(caffe.Layer):
 	# 2. resize each feature map using imresize function
 	for batch in range(bottom[0].num):
 	    for channel in range(bottom[0].channels):
-		top[0].data[batch, channel, ...] = resize(bottom[0].data[batch, channel, ...], aim_size, order=3, preserve_range=True)
+		top[0].data[batch, channel, ...] = resize(bottom[0].data[batch, channel, ...], aim_size, order=self.inter_order, preserve_range=True)
 
 	#print '#########################',time.time()-time1
 
@@ -50,7 +64,7 @@ class BlobAlignLayer(caffe.Layer):
 	aim_size = np.array(bottom[0].diff.shape[2:])
 	for batch in range(top[0].num):
 	    for channel in range(top[0].channels):
-		bottom[0].diff[batch, channel, ...] = resize(top[0].diff[batch, channel, ...], aim_size, order=0, preserve_range=True)
+		bottom[0].diff[batch, channel, ...] = resize(top[0].diff[batch, channel, ...], aim_size, order=self.inter_order, preserve_range=True)
 	# bottom[1].diff = 0
 	bottom[1].diff[...] = 0
 	#print '!!!!!!!!!!!!!!!!!!!!!!!!!',time.time()-time1
