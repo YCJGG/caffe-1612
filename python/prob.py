@@ -28,12 +28,11 @@ class ProbLayer(caffe.Layer):
 	#print bottom[1].data.shape
 	#plt.subplot(1,2,1)
 	#plt.imshow(bottom[0].data[0,:,:,:].transpose([1,2,0]))
+	print bottom[0].data.shape
+	plt.imshow(bottom[0].data[0,0,:,:])
 	#plt.subplot(1,2,2)
 	#plt.imshow(bottom[1].data[0,0,:,:])
-	#plt.show()
-	print '##################', bottom[0].data[0,0,0:4,58:62]
-	#plt.imshow(bottom[0].data[0,0,:,:])
-	#plt.show()
+	plt.show()
 
 	return
 

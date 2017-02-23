@@ -50,8 +50,9 @@ void SoftmaxWithLossLayer<Dtype>::Reshape(
       << "label count (number of labels) must be N*H*W, "
       << "with integer values in {0, 1, ..., C-1}.";
   if (top.size() >= 2) {
-    // softmax output
-    top[1]->ReshapeLike(*bottom[0]);
+    // original: softmax output
+    // now: output dense loss heat map
+    top[1]->ReshapeLike(*bottom[1]);
   }
 }
 
@@ -94,7 +95,9 @@ void SoftmaxWithLossLayer<Dtype>::Forward_cpu(
   const Dtype* label = bottom[1]->cpu_data();
   int dim = prob_.count() / outer_num_;
   int count = 0;
-  Dtype loss = 0;
+  Blob<Dtype> dense_loss;	// dense loss heat map, the same size as label - kfxw@2017-02-23
+  dense_loss.ReshapeLike(*bottom[1]);
+  Dtype* p_dense_loss = dense_loss.mutable_cpu_data();
   for (int i = 0; i < outer_num_; ++i) {
     for (int j = 0; j < inner_num_; j++) {
       const int label_value = static_cast<int>(label[i * inner_num_ + j]);
@@ -103,14 +106,21 @@ void SoftmaxWithLossLayer<Dtype>::Forward_cpu(
       }
       DCHECK_GE(label_value, 0);
       DCHECK_LT(label_value, prob_.shape(softmax_axis_));
-      loss -= log(std::max(prob_data[i * dim + label_value * inner_num_ + j],
+      p_dense_loss[i * inner_num_ + j] = -log(std::max(prob_data[i * dim + label_value * inner_num_ + j],
                            Dtype(FLT_MIN)));
       ++count;
     }
   }
-  top[0]->mutable_cpu_data()[0] = loss / get_normalizer(normalization_, count);
+  // loss normalization
+  Dtype normalizer = get_normalizer(normalization_, count);
+  caffe_scal<Dtype>(dense_loss.count(), 1.0/normalizer, p_dense_loss);
+  Dtype loss = caffe_cpu_asum<Dtype>(dense_loss.count(), p_dense_loss);
+  top[0]->mutable_cpu_data()[0] = loss / normalizer;
+
   if (top.size() == 2) {
-    top[1]->ShareData(prob_);
+    // original: top[1]->ShareData(prob_);
+    // now: output dense loss heat map
+    caffe_copy(dense_loss.count(), p_dense_loss, top[1]->mutable_cpu_data());
   }
 }
 

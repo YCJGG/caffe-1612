@@ -39,6 +39,8 @@ void SoftmaxWithLossLayer<Dtype>::Forward_gpu(
   // Since this memory is not used for anything until it is overwritten
   // on the backward pass, we use it here to avoid having to allocate new GPU
   // memory to accumulate intermediate results in the kernel.
+  //
+  // loss_data here is exactly the dense loss heat map, but watch out using the bottom[1]->count() for blas - kfxw@2017-02-23
   Dtype* loss_data = bottom[0]->mutable_gpu_diff();
   // Similarly, this memory is never used elsewhere, and thus we can use it
   // to avoid having to allocate additional GPU memory.
@@ -56,10 +58,12 @@ void SoftmaxWithLossLayer<Dtype>::Forward_gpu(
       has_ignore_label_) {
     caffe_gpu_asum(nthreads, counts, &valid_count);
   }
-  top[0]->mutable_cpu_data()[0] = loss / get_normalizer(normalization_,
-                                                        valid_count);
+  Dtype normalizer = get_normalizer(normalization_, valid_count);
+  top[0]->mutable_cpu_data()[0] = loss / normalizer;
   if (top.size() == 2) {
-    top[1]->ShareData(prob_);
+    // original: top[1]->ShareData(prob_);
+    // now: output dense loss heat map
+    caffe_gpu_scale<Dtype>(bottom[1]->count(), 1.0/normalizer, loss_data, top[1]->mutable_gpu_data());
   }
 }
 
