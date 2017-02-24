@@ -328,7 +328,24 @@ double ConfusionMatrix::avgJaccard() const {
   return totalJaccard / (double)_matrix.size();
 }
 
-/// bear added
+double ConfusionMatrix::avgJaccard(int ignore_label) const {
+  double totalJaccard = 0.0;
+  for (size_t i = 0; i < _matrix.size(); i++) {
+    if (_matrix[i].size() <= i) continue;
+    if (i == ignore_label) continue;
+    const double intersectionSize = (double)_matrix[i][i];
+    const double unionSize = (double)(rowSum(i) + colSum(i) - _matrix[i][i]);
+    if (intersectionSize == unionSize) {
+      // avoid divide by zero
+      totalJaccard += 1.0;
+    } else {
+      totalJaccard += intersectionSize / unionSize;
+    }
+  }
+  
+  return totalJaccard / (double)_matrix.size();
+}
+
 double ConfusionMatrix::avgF1score() const {
   double totalF1score = 0.0;  
   int count = 0;
@@ -338,7 +355,6 @@ double ConfusionMatrix::avgF1score() const {
         totalF1score += 2.0 * _matrix[i][i] / (rowSum(i) + colSum(i));
         count++;
     }
-    //LOG(INFO) << "---- p: " << p << " ---- r: " << r << "---- f1: " << ((2.0 * p * r) / (p + r));
   }
   
   return totalF1score / count;

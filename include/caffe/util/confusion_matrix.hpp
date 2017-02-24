@@ -55,6 +55,7 @@ class ConfusionMatrix {
   double avgPrecision() const;
   double avgRecall(const bool strict = true) const;
   double avgJaccard() const;
+  double avgJaccard(int ignore_label) const;
   double avgF1score() const;
   double classF1(int from, int to) const;
  

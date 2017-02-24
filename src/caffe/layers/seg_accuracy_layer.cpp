@@ -123,26 +123,33 @@ void SegAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   }
 
   if (this->iter_+1 == this->test_iter_) {
-    vector<Dtype> scores;
-    // evaluation and display
-    for (int i = 0; i < this->plugin_item_info.size(); i++) {
-        switch(this->layer_param_.seg_accuracy_param().eval_metrc()) {
-            case SegAccuracyParameter_EvalMetric_F1_SCORE:
+     vector<Dtype> scores;
+     // evaluation and display
+     switch(this->layer_param_.seg_accuracy_param().eval_metrc()) {
+        case SegAccuracyParameter_EvalMetric_F1_SCORE:
+	    for (int i = 0; i < this->plugin_item_info.size(); i++) {
 		scores.insert(scores.end(),
-		 (Dtype)confusion_matrix_.classF1(this->plugin_item_from[i], this->plugin_item_to[i]));
-		break;
-            case SegAccuracyParameter_EvalMetric_JACCARD:
-				scores.insert(scores.end(),
-		 (Dtype)confusion_matrix_.jaccard(this->plugin_item_from[i], this->plugin_item_to[i]));
-		break;
-	    default:
-	    {
+		 	(Dtype)confusion_matrix_.classF1(this->plugin_item_from[i], this->plugin_item_to[i]));
+		LOG(INFO) << this->plugin_item_info[i] << (Dtype)scores[i];
+	    }
+	    break;
+        case SegAccuracyParameter_EvalMetric_JACCARD:
+	    for (int i = 0; i < this->plugin_item_info.size()-1; i++) {
+		scores.insert(scores.end(),
+		 	(Dtype)confusion_matrix_.jaccard(this->plugin_item_from[i], this->plugin_item_to[i]));
+		LOG(INFO) << this->plugin_item_info[i] << (Dtype)scores[i];
+	    }
+	    // mean Jaccard score
+	    scores.insert(scores.end(), (Dtype)confusion_matrix_.avgJaccard());
+	    LOG(INFO) << this->plugin_item_info[ this->plugin_item_info.size()-1 ] << (Dtype)scores[ this->plugin_item_info.size()-1 ];
+	    break;
+	default:
+	{
 		scores.insert(scores.end(),0);
 		LOG(INFO) << "Warning: Unkonw evaluation metric";
-	    }
-        }
-	LOG(INFO) << this->plugin_item_info[i] << (Dtype)scores[i];
+	}
     }
+    
     // display all results
     char log_buffer[4096];
     memset(log_buffer, 0, 1);
