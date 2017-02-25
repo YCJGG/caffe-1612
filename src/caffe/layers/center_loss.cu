@@ -2,7 +2,7 @@
 * Modified center loss layer for segmentation.
 * Author: Wei Zhen @ IIE, CAS
 * Create on: 2016-12-25
-* Last Modified: 2016-01-14
+* Last Modified: 2016-02-25
 */
 
 #include <vector>
@@ -10,8 +10,6 @@
 #include "caffe/filler.hpp"
 #include "caffe/layers/center_loss_layer.hpp"
 #include "caffe/util/math_functions.hpp"
-
-#define MAX_COUNT 1000
 
 namespace caffe {
 
@@ -149,8 +147,8 @@ void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const int* label_counter__ = label_counter_.cpu_data();
     const int dim = bottom[0]->channels();
 
-    // \sum_{y_i==j}
-    if (count_ > MAX_COUNT) {
+    // center's diff from other centers, update after late_iter_
+    if (count_ > this->late_iter_) {
 	caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
 	// second input is the balance weight between two different gradients
 	caffe_axpy(dim*label_num_, (Dtype)0.1, center_mutual_distance.cpu_data(), center_diff);
@@ -177,7 +175,7 @@ void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     caffe_set(label_counter_.count(), (int)0., label_counter_.mutable_cpu_data());
   }
   // Gradient with respect to bottom data 
-  if (propagate_down[0] && count_ > MAX_COUNT) {
+  if (propagate_down[0] && count_ > this->late_iter_) {
     caffe_cpu_scale(distance_.count(), top[0]->cpu_diff()[0] / bottom[0]->num(), distance_.cpu_data(), bottom[0]->mutable_cpu_diff());
   }
   if (propagate_down[1]) {

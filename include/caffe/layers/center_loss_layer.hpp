@@ -52,6 +52,9 @@ class CenterLossLayer : public LossLayer<Dtype> {
 
   // iter counter
   int count_;
+
+  // begin to backpropagate data gradient after the late_iter_-th iteration
+  int late_iter_;
 };
 
 }  // namespace caffe

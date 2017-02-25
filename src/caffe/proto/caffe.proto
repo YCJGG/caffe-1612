@@ -463,6 +463,7 @@ message CenterLossParameter {
   // May be negative to index from the end (e.g., -1 for the last axis).
   optional int32 axis = 3 [default = 1];
   repeated int32 ignore_label = 4;
+  optional int32 late_iter = 5 [default = 1000];
 }
 
 // Message that stores parameters used to apply transformation

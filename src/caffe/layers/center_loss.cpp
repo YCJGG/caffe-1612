@@ -2,7 +2,7 @@
 * Modified center loss layer for segmentation.
 * Author: Wei Zhen @ IIE, CAS
 * Create on: 2016-12-25
-* Last Modified: 2016-01-14
+* Last Modified: 2016-02-25
 */
 
 #include <vector>
@@ -11,13 +11,12 @@
 #include "caffe/layers/center_loss_layer.hpp"
 #include "caffe/util/math_functions.hpp"
 
-#define MAX_COUNT 1000
-
 namespace caffe {
 
 template <typename Dtype>
 void CenterLossLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
+  this->late_iter_ = this->layer_param_.center_loss_param().late_iter();  
   label_num_ = this->layer_param_.center_loss_param().label_num();  
   label_axis_ = bottom[0]->CanonicalAxisIndex(this->layer_param_.center_loss_param().axis());
   outer_num_ = bottom[0]->count(0, label_axis_);
@@ -149,7 +148,7 @@ void CenterLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	    if (this->param_propagate_down_[0]) {
 		// variation_sum_data(Y(n,1,y,x), c) -= D(n,c,x,y) + 2x center_mutual_distance
 		variation_sum_data[label_value*dim + c] -= distance_data[c_idx*inner_num_ + j];
-		//if (count_ > MAX_COUNT)
+		//if (count_ > this->late_iter_)
 		    //variation_sum_data[label_value*dim + c] += 2* *(center_mutual_distance.cpu_data()+label_value*dim+c);
 		label_counter__[label_value]++;
 	    }
@@ -175,11 +174,13 @@ void CenterLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const int* label_counter__ = label_counter_.cpu_data();
     const int dim = bottom[0]->channels();
 
-    // \sum_{y_i==j}
-    if (count_ > MAX_COUNT) {
+    // center's diff from other centers, update after late_iter_
+    // second param in caffe_axpy is the control weight between the two diffs
+    if (count_ > this->late_iter_) {
 	caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
 	caffe_axpy(dim*label_num_, (Dtype)0.1, center_mutual_distance.cpu_data(), center_diff);
     }
+    // center's diff from the cluster itself
     for (int label_value = 0; label_value < label_num_; label_value++) {
       // ignore label
       if (find(ignore_label_.begin(), ignore_label_.end(), label_value) != ignore_label_.end())  continue;
@@ -201,7 +202,7 @@ void CenterLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   }
 
   // Gradient with respect to bottom data 
-  if (propagate_down[0] && count_ > MAX_COUNT) {
+  if (propagate_down[0] && count_ > this->late_iter_) {
     caffe_copy(distance_.count(), distance_.cpu_data(), bottom[0]->mutable_cpu_diff());
     caffe_scal(distance_.count(), top[0]->cpu_diff()[0] / bottom[0]->num(), bottom[0]->mutable_cpu_diff());
   }
