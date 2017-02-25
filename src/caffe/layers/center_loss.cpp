@@ -179,6 +179,8 @@ void CenterLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     if (count_ > this->late_iter_) {
 	caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
 	caffe_axpy(dim*label_num_, (Dtype)0.1, center_mutual_distance.cpu_data(), center_diff);
+	if (count_ == this->late_iter_+1)
+	    LOG(INFO) << "Start computing mutual center diff.";
     }
     // center's diff from the cluster itself
     for (int label_value = 0; label_value < label_num_; label_value++) {
@@ -205,6 +207,8 @@ void CenterLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   if (propagate_down[0] && count_ > this->late_iter_) {
     caffe_copy(distance_.count(), distance_.cpu_data(), bottom[0]->mutable_cpu_diff());
     caffe_scal(distance_.count(), top[0]->cpu_diff()[0] / bottom[0]->num(), bottom[0]->mutable_cpu_diff());
+    if (count_ == this->late_iter_+1)
+      LOG(INFO) << "Start backpropagating data gradient.";
   }
   if (propagate_down[1]) {
     LOG(FATAL) << this->type()
