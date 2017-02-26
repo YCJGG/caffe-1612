@@ -2,10 +2,11 @@
 * Modified center loss layer for segmentation.
 * Author: Wei Zhen @ IIE, CAS
 * Create on: 2016-12-25
-* Last Modified: 2016-02-25
+* Last Modified: 2016-02-26
 */
 
 #include <vector>
+#include <algorithm>
 
 #include "caffe/filler.hpp"
 #include "caffe/layers/center_loss_layer.hpp"
@@ -16,11 +17,13 @@ namespace caffe {
 template <typename Dtype>
 void CenterLossLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
-  this->late_iter_ = this->layer_param_.center_loss_param().late_iter();  
-  label_num_ = this->layer_param_.center_loss_param().label_num();  
-  label_axis_ = bottom[0]->CanonicalAxisIndex(this->layer_param_.center_loss_param().axis());
-  outer_num_ = bottom[0]->count(0, label_axis_);
-  inner_num_ = bottom[0]->count(label_axis_+1);
+  this->lambda_ = this->layer_param_.center_loss_param().lambda(); 
+  this->late_iter_ = this->layer_param_.center_loss_param().late_iter(); 
+  this->is_hard_aware_ =  this->layer_param_.center_loss_param().is_hard_aware();
+  this->label_num_ = this->layer_param_.center_loss_param().label_num();  
+  this->label_axis_ = bottom[0]->CanonicalAxisIndex(this->layer_param_.center_loss_param().axis());
+  this->outer_num_ = bottom[0]->count(0, label_axis_);
+  this->inner_num_ = bottom[0]->count(label_axis_+1);
   // Check if we need to set up the weights
   if (this->blobs_.size() > 0) {
     LOG(INFO) << "Skipping parameter initialization";
@@ -53,6 +56,14 @@ void CenterLossLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   vector<int> center_mutual_distance_dot_shape(1);
   // init iter counter
   count_ = 0;
+
+  // init of hard aware mode variables
+  if (bottom.size() == 3 && this->is_hard_aware_ == true) {
+    if (top.size() == 2)
+      top[1]->Reshape(bottom[2]->shape());
+    hw_sum = new Dtype[this->label_num_];
+    hw_count = new Dtype[this->label_num_];
+  }
 }
 
 template <typename Dtype>
@@ -66,6 +77,45 @@ void CenterLossLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   variation_sum_.Reshape(this->blobs_[0]->shape());
   // bottom and label may not be in the same size, but have same ratio
   label_bottom_factor = bottom[1]->height() / float(bottom[0]->height());
+
+  // generate hard aware flags: whether a pixel should be used to build cluster centers
+  // hard aware metric: mean loss of a label
+  if (bottom.size() == 3 && this->is_hard_aware_ == true) {
+    CHECK(bottom[0]->num() == bottom[2]->num() && bottom[0]->height() == bottom[2]->height() && bottom[0]->width() == bottom[2]->width())
+	 << "Data input should have the same batch size, height and width with loss heat map input: "
+	 << "("<< bottom[0]->shape()[0] << ","<< bottom[0]->shape()[1] << ","<< bottom[0]->shape()[2] << ","<< bottom[0]->shape()[3] << ") vs. ("
+	 << bottom[2]->shape()[0] << ","<< bottom[2]->shape()[1] << ","<< bottom[2]->shape()[2] << ","<< bottom[2]->shape()[3] << ")";
+    this->hard_aware_flags_.Reshape(bottom[2]->shape());
+    // compute metirc for each label
+    memset(hw_sum, 0, sizeof(Dtype)*this->label_num_);
+    memset(hw_count, 1e-5, sizeof(Dtype)*this->label_num_);
+    const Dtype* dense_loss = bottom[2]->cpu_data();
+    const int label_height = bottom[1]->height();
+    const int label_width = bottom[1]->width();
+    const int data_width = bottom[0]->width();
+    const Dtype* bottom_label = bottom[1]->cpu_data();
+    for (int n = 0; n < bottom[0]->num(); ++n) {
+      for (int j = 0; j < this->inner_num_; ++j) {
+	const int label_val = bottom_label[ label_idx_converter(n, label_height, label_width, j, data_width) ];
+	hw_sum[label_val] += dense_loss[n*this->inner_num_ + j];
+	hw_count[label_val]++;
+      }
+    }
+    // set hard aware flags
+    Dtype* hw_flags = this->hard_aware_flags_.mutable_cpu_data();
+    caffe_div(this->label_num_, hw_sum, hw_count, hw_sum);  // for mean metric
+    for (int n = 0; n < bottom[0]->num(); ++n) {
+      for (int j = 0; j < this->inner_num_; ++j) {
+	const int label_val = bottom_label[ label_idx_converter(n, label_height, label_width, j, data_width) ];
+	if (dense_loss[n*this->inner_num_ + j] <= hw_sum[label_val])
+	  hw_flags[n*this->inner_num_ + j] = 1;	//>0 true
+	else
+	  hw_flags[n*this->inner_num_ + j] = -1;//<0 false
+      }
+    }
+    if (top.size()==2)
+      caffe_copy(this->hard_aware_flags_.count(), this->hard_aware_flags_.cpu_data(), top[1]->mutable_cpu_data());
+  }// end of generating hard aware flags
 
   count_ ++;
 }
@@ -92,6 +142,7 @@ void CenterLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   const int label_height = bottom[1]->height();
   const int label_width = bottom[1]->width();
   const int data_width = bottom[0]->width();
+  const Dtype* hw_flags = this->hard_aware_flags_.cpu_data();
   // center diff
   Dtype* variation_sum_data = variation_sum_.mutable_cpu_data();
   int* label_counter__ = label_counter_.mutable_cpu_data();
@@ -146,11 +197,18 @@ void CenterLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
             distance_data[c_idx*inner_num_ + j] = bottom_data[c_idx*inner_num_ + j] - center[label_value*dim + c];
 	    // compute center diff
 	    if (this->param_propagate_down_[0]) {
-		// variation_sum_data(Y(n,1,y,x), c) -= D(n,c,x,y) + 2x center_mutual_distance
-		variation_sum_data[label_value*dim + c] -= distance_data[c_idx*inner_num_ + j];
-		//if (count_ > this->late_iter_)
-		    //variation_sum_data[label_value*dim + c] += 2* *(center_mutual_distance.cpu_data()+label_value*dim+c);
-		label_counter__[label_value]++;
+		// variation_sum_data(Y(n,1,y,x), c) -= D(n,c,x,y) + 2x center_mutual_distance, center_mutual_distance is processed in bp func
+		if (bottom.size() == 3 && this->is_hard_aware_ == true) {	// hard awared mode
+		  if (hw_flags[n*inner_num_ + j] > 0) {				// flag>0 => true; flag<0 => false
+		    variation_sum_data[label_value*dim + c] -= distance_data[c_idx*inner_num_ + j];
+		    label_counter__[label_value]++;
+		  }
+		  else continue;
+		}
+		else {								// original mode
+		  variation_sum_data[label_value*dim + c] -= distance_data[c_idx*inner_num_ + j];
+		  label_counter__[label_value]++;
+		}
 	    }
         }
     }
@@ -178,7 +236,7 @@ void CenterLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     // second param in caffe_axpy is the control weight between the two diffs
     if (count_ > this->late_iter_) {
 	caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
-	caffe_axpy(dim*label_num_, (Dtype)0.1, center_mutual_distance.cpu_data(), center_diff);
+	caffe_axpy(dim*label_num_, this->lambda_, center_mutual_distance.cpu_data(), center_diff);
 	if (count_ == this->late_iter_+1)
 	    LOG(INFO) << "Start computing mutual center diff.";
     }
@@ -186,7 +244,7 @@ void CenterLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     for (int label_value = 0; label_value < label_num_; label_value++) {
       // ignore label
       if (find(ignore_label_.begin(), ignore_label_.end(), label_value) != ignore_label_.end())  continue;
-      caffe_axpy(dim, (Dtype)1./(label_counter__[label_value] + (Dtype)1.), variation_sum_data + label_value*dim, center_diff + label_value*dim);
+      caffe_axpy(dim, bottom[0]->channels()/(label_counter__[label_value] + (Dtype)1.), variation_sum_data + label_value*dim, center_diff + label_value*dim);
     }
 
 //Dtype a=0, b=0,c=0;

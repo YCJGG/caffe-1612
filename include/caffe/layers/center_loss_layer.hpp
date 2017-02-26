@@ -21,8 +21,11 @@ class CenterLossLayer : public LossLayer<Dtype> {
   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
 
+  // bottom: [0]-data, [1]-label(arbitrary size), [2]-dense loss
+  // top: [0]-loss, [1]-hard aware flags map
   virtual inline const char* type() const { return "CenterLoss"; }
-  virtual inline int ExactNumBottomBlobs() const { return 2; }
+  virtual inline int MinBottomBlobs() const { return 2; }
+  virtual inline int ExactNumBottomBlobs() const { return -1; }
   virtual inline int ExactNumTopBlobs() const { return -1; }
   virtual inline int MinTopBlobs() const { return 1; }
 
@@ -55,6 +58,16 @@ class CenterLossLayer : public LossLayer<Dtype> {
 
   // begin to backpropagate data gradient after the late_iter_-th iteration
   int late_iter_;
+
+  // whether to use hard example awared mode
+  bool is_hard_aware_;
+  Blob<Dtype> hard_aware_flags_;
+  // internel vars
+  Dtype* hw_sum;
+  Dtype* hw_count;
+
+  // gradient ratio of cluster itself/other centers
+  Dtype lambda_;
 };
 
 }  // namespace caffe

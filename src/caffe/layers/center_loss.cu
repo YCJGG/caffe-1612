@@ -25,7 +25,8 @@ __global__ void Compute_distance_data_gpu(int nthreads,
 		 int* label_counter_,
 		 float label_bottom_factor,
 		 const int label_width, const int data_width,
-		 const int* ignore_label, const int ignore_label_size) {
+		 const int* ignore_label, const int ignore_label_size,
+		 Dtype* hw_flags) {
 	CUDA_KERNEL_LOOP(index, nthreads) {
 	    // convert data idx to label idx
 	    const int y = int(index / data_width);
@@ -46,8 +47,16 @@ __global__ void Compute_distance_data_gpu(int nthreads,
 	    // compute center diff
 	    if (is_param_propagate_down_) {
 		// variation_sum_data(Y(n,1,y,x), c) -= D(n,c,x,y) + 2x center_mutual_distance{finished in backward}
-		variation_sum_data[label_value*dim + c] -= distance_data[index];
-		label_counter_[label_value]++;
+		if (hw_flags != NULL) {								// hard awared mode
+			if (hw_flags[index] > 0) {						// flag>0 => true; flag<0 => false
+			    variation_sum_data[label_value*dim + c] -= distance_data[index];
+			    label_counter_[label_value]++;
+			}
+		}
+		else {
+			variation_sum_data[label_value*dim + c] -= distance_data[index];
+			label_counter_[label_value]++;
+		}
 	    }
         }
 }
@@ -105,6 +114,12 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   // NOTE!!! first param is number of byte, not number of a data
   caffe_gpu_memcpy(this->ignore_label_.size() * sizeof(int), &this->ignore_label_[0], cu_ignore_label);
 
+  // prepare hard aware flags
+  Dtype* hw_flags = NULL;
+  if (bottom.size() == 3 && this->is_hard_aware_ == true) {	// hard awared mode
+	hw_flags = this->hard_aware_flags_.mutable_cpu_data();
+  }
+
   // the i-th distance_data
   for (int n = 0; n < num; ++n) {
     for (int c = 0; c < dim; ++c) {
@@ -123,7 +138,8 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 		 label_counter_.mutable_gpu_data(),		//label_counter_
 		 this->label_bottom_factor,			//label_bottom_factor
 		 label_width, data_width,			//label_width, data_width
-		 cu_ignore_label, this->ignore_label_.size());   //ignore_label, ignore_label_size
+		 cu_ignore_label, this->ignore_label_.size(),   //ignore_label, ignore_label_size
+		 hw_flags);					//hard aware flags
     }
   }
 
@@ -150,8 +166,8 @@ void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     // center's diff from other centers, update after late_iter_
     if (count_ > this->late_iter_) {
 	caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
-	// second input is the balance weight between two different gradients
-	caffe_axpy(dim*label_num_, (Dtype)0.1, center_mutual_distance.cpu_data(), center_diff);
+	// second param is the balance weight between two different gradients
+	caffe_axpy(dim*label_num_, this->lambda_, center_mutual_distance.cpu_data(), center_diff);
 	if (count_ == this->late_iter_+1)
 	    LOG(INFO) << "Start computing mutual center diff.";
     }
@@ -159,7 +175,7 @@ void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     for (int label_value = 0; label_value < label_num_; label_value++) {
       // ignore label
       if (find(ignore_label_.begin(), ignore_label_.end(), label_value) != ignore_label_.end())  continue;
-      caffe_axpy(dim, (Dtype)1./(label_counter__[label_value] + (Dtype)1.), variation_sum_data + label_value*dim, center_diff + label_value*dim);
+      caffe_axpy(dim, bottom[0]->channels()/(label_counter__[label_value] + (Dtype)1.), variation_sum_data + label_value*dim, center_diff + label_value*dim);
     }
 
 //Dtype a=0, b=0, c=0;
