@@ -68,6 +68,9 @@ class CenterLossLayer : public LossLayer<Dtype> {
 
   // gradient ratio of cluster itself/other centers
   Dtype lambda_;
+
+  // the margin of L_{D} term
+  Dtype ld_margin_;
 };
 
 }  // namespace caffe

@@ -2,7 +2,7 @@
 * Modified center loss layer for segmentation.
 * Author: Wei Zhen @ IIE, CAS
 * Create on: 2016-12-25
-* Last Modified: 2016-02-25
+* Last Modified: 2016-02-28
 */
 
 #include <vector>
@@ -106,6 +106,10 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 	caffe_sub(dim, center+i*dim, center+j*dim, tmp_sub);
 	caffe_axpy(dim, (Dtype)1./label_num_, tmp_sub, distance_inter+i*dim);
     }
+  // L_{D} = max(ld_margin_ - center_mutual_distance^2, 0)
+//printf("%f %f\n",caffe_cpu_dot(dim, distance_inter+i*dim, distance_inter+i*dim), this->ld_margin_);
+  if (caffe_cpu_dot(dim, distance_inter+i*dim, distance_inter+i*dim) > this->ld_margin_)
+    caffe_set(dim, (Dtype)0., distance_inter+i*dim);
   }
   
   // convert ignore label vector into array
@@ -163,11 +167,11 @@ void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const int* label_counter__ = label_counter_.cpu_data();
     const int dim = bottom[0]->channels();
 
+    caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
     // center's diff from other centers, update after late_iter_
     if (count_ > this->late_iter_) {
-	caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
 	// second param is the balance weight between two different gradients
-	caffe_axpy(dim*label_num_, this->lambda_, center_mutual_distance.cpu_data(), center_diff);
+	caffe_axpy(dim*label_num_, this->lambda_*(-2), center_mutual_distance.cpu_data(), center_diff);
 	if (count_ == this->late_iter_+1)
 	    LOG(INFO) << "Start computing mutual center diff.";
     }
@@ -178,13 +182,14 @@ void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
       caffe_axpy(dim, bottom[0]->channels()/(label_counter__[label_value] + (Dtype)1.), variation_sum_data + label_value*dim, center_diff + label_value*dim);
     }
 
-//Dtype a=0, b=0, c=0;
-//for (int i = 0; i < dim; i++){
-//a+=center_mutual_distance.cpu_data()[1*dim+i];
-//b+=variation_sum_data[1*dim+i];
-//c+=center_diff[1*dim+i];
-//}
-//printf("%f %f %f\n",a,b,c);
+Dtype a=0, b=0, c=0;
+for (int i = 0; i < dim; i++){
+a+=center_mutual_distance.cpu_data()[1*dim+i]*this->lambda_;
+b+=variation_sum_data[1*dim+i]/(label_counter__[1] + (Dtype)1.)*bottom[0]->channels();
+c+=center_diff[1*dim+i];
+}
+const Dtype* test_val = center_mutual_distance.cpu_data()+(1*dim);
+printf("%f %f %f %f\n",a,b,c, caffe_cpu_dot(dim, test_val, test_val));
 
 
     // reset variation_sum_

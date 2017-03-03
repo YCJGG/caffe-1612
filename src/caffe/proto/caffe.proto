@@ -466,6 +466,7 @@ message CenterLossParameter {
   optional int32 late_iter = 5 [default = 1000];
   optional bool is_hard_aware = 6 [default = false];
   optional float lambda = 7 [default = 0.005];
+  optional float ld_margin = 8 [default = 0];
 }
 
 // Message that stores parameters used to apply transformation

@@ -2,7 +2,7 @@
 * Modified center loss layer for segmentation.
 * Author: Wei Zhen @ IIE, CAS
 * Create on: 2016-12-25
-* Last Modified: 2016-02-26
+* Last Modified: 2016-02-28
 */
 
 #include <vector>
@@ -19,7 +19,8 @@ void CenterLossLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   this->lambda_ = this->layer_param_.center_loss_param().lambda(); 
   this->late_iter_ = this->layer_param_.center_loss_param().late_iter(); 
-  this->is_hard_aware_ =  this->layer_param_.center_loss_param().is_hard_aware();
+  this->is_hard_aware_ = this->layer_param_.center_loss_param().is_hard_aware();
+  this->ld_margin_ = this->layer_param_.center_loss_param().ld_margin();
   this->label_num_ = this->layer_param_.center_loss_param().label_num();  
   this->label_axis_ = bottom[0]->CanonicalAxisIndex(this->layer_param_.center_loss_param().axis());
   this->outer_num_ = bottom[0]->count(0, label_axis_);
@@ -182,6 +183,9 @@ void CenterLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	caffe_sub(dim, center+i*dim, center+j*dim, tmp_sub);
 	caffe_axpy(dim, (Dtype)1./label_num_, tmp_sub, distance_inter+i*dim);
     }
+  // L_{D} = max(ld_margin_ - center_mutual_distance^2, 0)
+  if (caffe_cpu_dot(dim, distance_inter+i*dim, distance_inter+i*dim) > this->ld_margin_)
+    caffe_set(dim, (Dtype)0., distance_inter+i*dim);
   }
 
   // the i-th distance_data
@@ -236,7 +240,7 @@ void CenterLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     // second param in caffe_axpy is the control weight between the two diffs
     if (count_ > this->late_iter_) {
 	caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
-	caffe_axpy(dim*label_num_, this->lambda_, center_mutual_distance.cpu_data(), center_diff);
+	caffe_axpy(dim*label_num_, this->lambda_*(-2), center_mutual_distance.cpu_data(), center_diff);
 	if (count_ == this->late_iter_+1)
 	    LOG(INFO) << "Start computing mutual center diff.";
     }
