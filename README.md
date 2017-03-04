@@ -3,10 +3,11 @@
 My own Caffe development branch with some tools:
 
 - Multi Mean Field Iteration (transfer from [CRF-RNN caffe](https://github.com/torrvision/crfasrnn))
-- Segmetation Accuracy Layer (micro averaged F1 score)
-- modified range loss for parsing (under construction)
-- Blob Align (python layer)
+- Segmetation Accuracy Layer (micro averaged F1 score or Mean IoU/Jaccard score, with plugin files acommedating to various datasets)
+- hard awared statistical contextual loss for parsing (under construction)
+- Blob Align (python layer, resize a feature map to the same size of another feature map)
 - imgResize (python layer)
+- salientArea (Pyhton layer, convert parsing labels to 0/1 binary map - bg or object)
 - image seg data layer (transfer from [Deeplab v1 caffe](https://github.com/TheLegendAli/DeepLab-Context))
 - dense crf layer (transfer from [Deeplab v1 caffe](https://github.com/TheLegendAli/DeepLab-Context))
 

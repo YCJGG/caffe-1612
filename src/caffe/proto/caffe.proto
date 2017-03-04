@@ -306,7 +306,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 153 (last added: dense_crf_param)
+// LayerParameter next available layer-specific ID: 154 (last added: inflation_factor_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -407,6 +407,19 @@ message LayerParameter {
   optional CenterLossParameter center_loss_param = 150;
   optional MultiStageMeanfieldParameter multi_stage_meanfield_param = 151;
   optional DenseCRFParameter dense_crf_param = 152;
+  optional InflationFactorParameter inflation_factor_param = 154;
+}
+
+message InflationFactorParameter {
+  // init inflation factor, DO NOT exceed its upper and lower bounds
+  optional float factor = 1 [default = 1];
+  optional uint32 start_iter = 2 [default = 0];
+  optional uint32 margin = 3 [default = 1];	// used in interpolation operations
+  optional bool use_bg_mask = 4 [default = false];
+  optional float bg_mask_weight = 5 [default = 1.0];
+  optional bool clip_gradient = 6 [default = false];
+  optional float factor_diff_weight = 7 [default = 1.0];  // used in InflationX layer, to bp down to factor diff
+  optional float clip_gradient_value = 8 [default = 1];
 }
 
 // Message that sotres parameters used by DenseCRFLayer
