@@ -135,8 +135,9 @@ void SegAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	    break;
         case SegAccuracyParameter_EvalMetric_JACCARD:
 	    for (int i = 0; i < this->plugin_item_info.size()-1; i++) {
+		// assume that no labels are combined/merged
 		scores.insert(scores.end(),
-		 	(Dtype)confusion_matrix_.jaccard(this->plugin_item_from[i], this->plugin_item_to[i]));
+		 	(Dtype)confusion_matrix_.jaccard(this->plugin_item_from[i]));//, this->plugin_item_to[i]));
 		LOG(INFO) << this->plugin_item_info[i] << (Dtype)scores[i];
 	    }
 	    // mean Jaccard score
