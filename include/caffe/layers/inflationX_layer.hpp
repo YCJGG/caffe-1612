@@ -35,7 +35,7 @@ class InflationXLayer: public Layer<Dtype> {
    *     default {'type': constant 'value':1}).
    */
   explicit InflationXLayer(const LayerParameter& param)
-      : Layer<Dtype>(param), MAX_FACTOR(4), MIN_FACTOR(0.3), factor_bg_mask(1.0), bg_mask_weight(1.0) {};
+      : Layer<Dtype>(param), MAX_FACTOR(4.5), MIN_FACTOR(0.3), factor_bg_mask(1.0), bg_mask_weight(1.0) {};
 
   virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);

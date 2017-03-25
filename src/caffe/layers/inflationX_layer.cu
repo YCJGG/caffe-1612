@@ -50,6 +50,10 @@ __global__ void InflateForwardGPU(const int nthreads,
 		{
 		    factor_diff_matrix[idx_t] *= bg_mask_weight;
 		}
+		if (label!= NULL && label[int(round(idx_t*factor_bg_mask))] == 255)
+		{
+		    factor_diff_matrix[idx_t] = 0;
+		}
             }
         }
         // normalize
@@ -186,12 +190,11 @@ void InflationXLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 	Dtype tmp = static_cast<Dtype>(1.0 * sum_dLoss_dfactor / num / height / width + top_factor_diff[0]);
 	tmp *= this->layer_param().inflation_factor_param().factor_diff_weight();
 
-        *factor_diff += tmp;
 	if (this->layer_param().inflation_factor_param().clip_gradient() == true)
 	{
 	    float MARGIN = this->layer_param().inflation_factor_param().clip_gradient_value();
-	    if (*factor_diff > MARGIN) *factor_diff = MARGIN;
-	    if (*factor_diff < -MARGIN) *factor_diff = -MARGIN;
+	    if (tmp > MARGIN) tmp = MARGIN;
+	    if (tmp < -MARGIN) tmp = -MARGIN;
 	}
         *factor_diff += tmp;
 
@@ -207,7 +210,7 @@ void InflationXLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         *factor_diff = 0;
         
         if (iter_counter_ == this->layer_param().inflation_factor_param().start_iter() && propagate_down[0])
-            LOG(INFO) << " Start learning factor value ~~~~~";    
+            LOG(INFO) << " Start learning factor value";    
     }
     iter_counter_++;
 }

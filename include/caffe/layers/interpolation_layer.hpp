@@ -29,7 +29,7 @@ class InterpolationLayer: public Layer<Dtype> {
    *     default {'type': constant 'value':1}).
    */
   explicit InterpolationLayer(const LayerParameter& param)
-      : Layer<Dtype>(param), MAX_FACTOR(27.04), MIN_FACTOR(2) {}; // f'= 8.1111 / f
+      : Layer<Dtype>(param), MAX_FACTOR(27.5), MIN_FACTOR(2) {}; // f'= 8.1111 / f
 
   virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);

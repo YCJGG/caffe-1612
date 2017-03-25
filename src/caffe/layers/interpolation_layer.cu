@@ -53,6 +53,10 @@ __global__ void InflateForwardGPU(const int nthreads,
 		{
 		    factor_diff_matrix[idx_t] *= bg_mask_weight;
 		}
+		if (label!= NULL && label[int(round(idx_t*factor_bg_mask))] == 255)
+		{
+		    factor_diff_matrix[idx_t] = 0;
+		}
             }
         }
         // normalize

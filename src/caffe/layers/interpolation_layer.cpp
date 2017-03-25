@@ -101,6 +101,10 @@ void InterpolationLayer<Dtype>::inflate_forward(const Dtype *bottom_data, const 
 		    {
 			factor_diff_matrix[idx_t] *= this->bg_mask_weight;
 		    }
+		    if (label!= NULL && label[int(round(idx_t*this->factor_bg_mask))] == 255)
+		    {
+			factor_diff_matrix[idx_t] = 0;
+		    }
                 }
             }
             // normalize
