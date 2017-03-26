@@ -44,15 +44,15 @@ void DenseCRFLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     << "bottom must have size larger than 2 (i.e., DCNN output and image dim).";
     CHECK_LE(bottom.size(), 3)
     << "bottom size is at most three.";
-  if (bottom.size() == 2) {
-    has_image = false;
-  } else {
+  //if (bottom.size() == 2) {
+  //  has_image = false;
+  //} else {
     has_image = true;
     CHECK_GT(bi_w_.size(), 0)
       << "has image as input, but no bilateral parameters specified.";
     CHECK_EQ(bottom[1]->channels(), 3)
       << "Can Only support color images for now.";
-  }
+  //}
   
   unary_element_ = 0;
   map_element_   = 0;
