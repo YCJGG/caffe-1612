@@ -3,12 +3,17 @@
 #     using imresize function.
 # Author: Wei Zhen @ IIE, CAS & Yingcai, UESTC
 # Finish on: 2016-03-28
-# Last modified: 2017-02-18
+# Last modified: 2017-04-21
 
 import caffe
 import numpy as np
 from skimage.transform import resize
 import time
+from multiprocessing.dummy import Pool as ThreadPool
+
+# global function
+def run_resize(map_arg):
+    return resize(map_arg[0], map_arg[1], order=map_arg[2], preserve_range=True)
 
 class BlobAlignLayer(caffe.Layer):
     """
@@ -35,6 +40,8 @@ class BlobAlignLayer(caffe.Layer):
 	    self.inter_order = 4
 	elif self.param_str == "biquintic":
 	    self.inter_order = 5
+	# open multiprocessing pool
+	self.pool = ThreadPool(8)
 
     def reshape(self, bottom, top):
 	# top/result has the same height and width as the second bottom/input
@@ -51,10 +58,14 @@ class BlobAlignLayer(caffe.Layer):
 	# two bottoms can vary in number and channel
 	# 1. fetch aim size
 	aim_size = np.array(bottom[1].data.shape[2:])
+	#aim_size = aim_size[np.newaxis,:]
+	#aim_size = np.tile(aim_size, (bottom[0].channels,1))
 	# 2. resize each feature map using imresize function
 	for batch in range(bottom[0].num):
+	map_arg = []
 	    for channel in range(bottom[0].channels):
-		top[0].data[batch, channel, ...] = resize(bottom[0].data[batch, channel, ...], aim_size, order=self.inter_order, preserve_range=True)
+		map_arg.append([bottom[0].data[batch,channel,...], aim_size, self.inter_order])
+	    top[0].data[batch,...] = self.pool.map(run_resize, map_arg)
 
 	#print '#########################',time.time()-time1
 
@@ -63,8 +74,10 @@ class BlobAlignLayer(caffe.Layer):
 	# resize top's diff to the size of bottom[0]
 	aim_size = np.array(bottom[0].diff.shape[2:])
 	for batch in range(top[0].num):
+	map_arg = []
 	    for channel in range(top[0].channels):
-		bottom[0].diff[batch, channel, ...] = resize(top[0].diff[batch, channel, ...], aim_size, order=self.inter_order, preserve_range=True)
+		map_arg.append([top[0].diff[batch,channel,...], aim_size, self.inter_order])
+	    bottom[0].diff[batch, ...] = self.pool.map(run_resize, map_arg)
 	# bottom[1].diff = 0
 	bottom[1].diff[...] = 0
 	#print '!!!!!!!!!!!!!!!!!!!!!!!!!',time.time()-time1
