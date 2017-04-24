@@ -62,7 +62,7 @@ class BlobAlignLayer(caffe.Layer):
 	#aim_size = np.tile(aim_size, (bottom[0].channels,1))
 	# 2. resize each feature map using imresize function
 	for batch in range(bottom[0].num):
-	map_arg = []
+	    map_arg = []
 	    for channel in range(bottom[0].channels):
 		map_arg.append([bottom[0].data[batch,channel,...], aim_size, self.inter_order])
 	    top[0].data[batch,...] = self.pool.map(run_resize, map_arg)
@@ -74,7 +74,7 @@ class BlobAlignLayer(caffe.Layer):
 	# resize top's diff to the size of bottom[0]
 	aim_size = np.array(bottom[0].diff.shape[2:])
 	for batch in range(top[0].num):
-	map_arg = []
+	    map_arg = []
 	    for channel in range(top[0].channels):
 		map_arg.append([top[0].diff[batch,channel,...], aim_size, self.inter_order])
 	    bottom[0].diff[batch, ...] = self.pool.map(run_resize, map_arg)
