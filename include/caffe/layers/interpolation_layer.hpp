@@ -93,6 +93,7 @@ class InterpolationLayer: public Layer<Dtype> {
   // init with 1
   float factor_bg_mask;
   float bg_mask_weight;
+  float bg_fg_ratio;	// the ratio of background pix and foreground pix, to normalize gradient
 };
 
 }  // namespace caffe

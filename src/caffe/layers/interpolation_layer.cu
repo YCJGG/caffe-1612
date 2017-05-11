@@ -183,6 +183,10 @@ void InterpolationLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         // df'/df = -8.11111/f/f
         *factor_diff = static_cast<Dtype>((sum_dLoss_dfactor / num / top_height / top_width) 
                         * (-(bottom[1]->height() - 1.0) / (bottom_factor[1] - 1.0) / bottom_factor[0] / bottom_factor[0]));
+
+	// if bg_mask is used, normalize diff with bg_fg_ratio
+	//if (this->layer_param().inflation_factor_param().use_bg_mask() == true)		*factor_diff = *factor_diff / this->bg_fg_ratio;
+
 /*         LOG(INFO) << "  interpolation factor: " << factor_value_
                   << " (" << height << " -> " << top_height << ")"
                   << " f_diff: " << *factor_diff;

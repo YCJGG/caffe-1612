@@ -57,11 +57,19 @@ void InterpolationLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
     top[0]->Reshape(bottom[0]->num(), bottom[0]->channels(), bottom[1]->height(), bottom[1]->width());
     factor_diff_.Reshape(bottom[0]->num(), bottom[0]->channels(), bottom[1]->height(), bottom[1]->width());
     
-    // if background mask is used, init factor_bg_mask
+    // if background mask is used, init factor_bg_mask and bg_fg_ratio
     if (this->layer_param().inflation_factor_param().use_bg_mask() == true && bottom.size() == 4)
     {
 	this->factor_bg_mask = float(bottom[3]->height()) / bottom[0]->height();
+	// compute bg/fg according to label
+	//float fg_count = 1;
+	//const Dtype* label = bottom[1]->cpu_data();
+	//for (int i = 0; i < bottom[1]->width() * bottom[1]->height(); i++) {
+	//    if (label[i]!=0 && label[i]!=255)	fg_count++;
+	//}
+	//this->bg_fg_ratio = fg_count / (bottom[1]->width() * bottom[1]->height());
     }
+	
 }
 
 template <typename Dtype>
@@ -223,6 +231,10 @@ void InterpolationLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         // df'/df = -8.11111/f/f
         *factor_diff = static_cast<Dtype>((sum_dLoss_dfactor / num / top_height / top_width) 
                         * (-(bottom[1]->height() - 1.0) / (bottom_factor[1] - 1.0) / bottom_factor[0] / bottom_factor[0]));
+
+	// if bg_mask is used, normalize diff with bg_fg_ratio
+	//if (this->layer_param().inflation_factor_param().use_bg_mask() == true)		*factor_diff = *factor_diff / this->bg_fg_ratio;
+
 /*        LOG(INFO) << "  interpolation factor: " << factor_value_
                   << "  (" << height << " -> " << top_height << ")"
                   << "  f_diff: " << *factor_diff;

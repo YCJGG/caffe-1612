@@ -101,7 +101,7 @@ void InflationXLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
     // if background mask is used, init factor_bg_mask
     if (this->layer_param().inflation_factor_param().use_bg_mask() == true)
     {
-	this->factor_bg_mask = float(bottom[1]->height()) / bottom[0]->height();
+	this->factor_bg_mask = float(bottom[2]->height()) / bottom[0]->height();
     }
 }
 
@@ -264,7 +264,7 @@ void InflationXLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     }
     
     // compute diff for factor_
-    if (iter_counter_ >= this->layer_param().inflation_factor_param().start_iter()) {
+    if (iter_counter_ >= this->layer_param().inflation_factor_param().start_iter() && propagate_down[1]) {
     
 	if (iter_counter_ % 20 == 0)    *factor_diff = 0;
 

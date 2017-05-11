@@ -177,7 +177,7 @@ void InflationXLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         }
     }
     
-    if (iter_counter_ >= this->layer_param().inflation_factor_param().start_iter()) {
+    if (iter_counter_ >= this->layer_param().inflation_factor_param().start_iter() && propagate_down[1]) {
     
 	if (iter_counter_ % 20 == 0)    *factor_diff = 0;
 
