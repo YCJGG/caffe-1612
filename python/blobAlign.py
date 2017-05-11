@@ -9,7 +9,7 @@ import caffe
 import numpy as np
 from skimage.transform import resize
 import time
-from multiprocessing.dummy import Pool as ThreadPool
+from multiprocessing import Pool as ThreadPool
 
 # global function
 def run_resize(map_arg):
@@ -41,7 +41,7 @@ class BlobAlignLayer(caffe.Layer):
 	elif self.param_str == "biquintic":
 	    self.inter_order = 5
 	# open multiprocessing pool
-	self.pool = ThreadPool(8)
+	self.pool = ThreadPool(3)
 
     def reshape(self, bottom, top):
 	# top/result has the same height and width as the second bottom/input

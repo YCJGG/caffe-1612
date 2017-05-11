@@ -3,11 +3,16 @@
 #     using imresize function.
 # Author: Wei Zhen @ IIE, CAS & Yingcai, UESTC
 # Finish on: 2016-03-28
-# Last modified: 2016-07-20
+# Last modified: 2017-04-24
 
 import caffe
 import numpy as np
 from skimage.transform import resize
+from multiprocessing import Pool as ThreadPool
+
+# global function
+def run_resize(map_arg):
+    return resize(map_arg[0], map_arg[1], preserve_range=True)
 
 class ImgResizeLayer(caffe.Layer):
     """
@@ -21,6 +26,8 @@ class ImgResizeLayer(caffe.Layer):
 	if len(bottom) != 1:
 	    raise Exception("Blob align layer accepts one bottom")
 	self.newshape = int(self.param_str)
+	# open multiprocessing pool
+	self.pool = ThreadPool(8)
 
     def reshape(self, bottom, top):
 	# top/result has the same height and width as the second bottom/input
@@ -34,8 +41,16 @@ class ImgResizeLayer(caffe.Layer):
 	aim_size = np.array([self.newshape, self.newshape])
 	# 2. resize each feature map using imresize function
 	for batch in range(bottom[0].num):
+	    map_arg = []
 	    for channel in range(bottom[0].channels):
-		top[0].data[batch, channel, ...] = resize(bottom[0].data[batch, channel, ...], aim_size, preserve_range=True)
+		map_arg.append([bottom[0].data[batch,channel,...], aim_size])
+	    top[0].data[batch,...] = self.pool.map(run_resize, map_arg)
 
     def backward(self, top, propagate_down, bottom):
+	aim_size = np.array(bottom[0].diff.shape[2:])
+	for batch in range(top[0].num):
+	    map_arg = []
+	    for channel in range(top[0].channels):
+		map_arg.append([top[0].diff[batch,channel,...], aim_size])
+	    bottom[0].diff[batch, ...] = self.pool.map(run_resize, map_arg)
 	return
