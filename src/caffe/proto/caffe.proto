@@ -306,7 +306,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 154 (last added: inflation_factor_param)
+// LayerParameter next available layer-specific ID: 156 (last added: resize_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -408,6 +408,33 @@ message LayerParameter {
   optional MultiStageMeanfieldParameter multi_stage_meanfield_param = 151;
   optional DenseCRFParameter dense_crf_param = 152;
   optional InflationFactorParameter inflation_factor_param = 154;
+  optional ResizeParameter resize_param = 155;
+}
+
+// used for Resize Layer - 2017-06-11
+message ResizeParameter {
+  // function type: the layer resize features by 
+  //    1: given output sizes;  [default]
+  //    2: aligning with a bottom blob (bottom[1]);
+  //    3: given resize factor;
+  optional FunctionType function_type = 1 [default = SIZE_GIVEN];
+  enum FunctionType {
+    SIZE_GIVEN = 1;
+    BLOB_ALIGN = 2;
+    FACTOR_GIVEN = 3;
+  }
+  // intepolation type: 1: neareast [default]; 2: bilinear
+  optional InterpolationType intepolation_type = 2 [default = NEAREST];
+  enum InterpolationType {
+    NEAREST = 1;
+    BILINEAR = 2;
+  }
+  // if use SIZE_GIVEN, output size must be given
+  //    0 to be default and then resize factor become 1
+  optional float output_size = 3 [default = 0];
+  // if use BLOB_ALIGN, be sure to give bottom[1]
+  // if use FACTOR_GIVEN, resize factor is set directly [default=1]
+  optional float resize_factor = 4 [default = 1];
 }
 
 message InflationFactorParameter {

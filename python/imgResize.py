@@ -12,7 +12,7 @@ from multiprocessing import Pool as ThreadPool
 
 # global function
 def run_resize(map_arg):
-    return resize(map_arg[0], map_arg[1], preserve_range=True)
+    return resize(map_arg[0], map_arg[1], preserve_range=True, order=0)# nearest
 
 class ImgResizeLayer(caffe.Layer):
     """

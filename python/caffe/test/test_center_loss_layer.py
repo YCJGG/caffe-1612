@@ -25,7 +25,7 @@ class TestLayerWithParam(unittest.TestCase):
         self.net = caffe.Net(net_file, caffe.TRAIN)
         os.remove(net_file)
 
-    def test_forward(self):
+    """def test_forward(self):
         #data = np.array([1,1,2,2,0,0,1,1]).reshape(1,2,2,2)
 	#label = np.array([1,2,3,4,4,3,2,1,1,1,2,2,3,3,4,4]).reshape(1,1,4,4)-1
 	#loss = np.array([1])
@@ -35,4 +35,4 @@ class TestLayerWithParam(unittest.TestCase):
 	#self.assertEqual(self.net.blobs['loss'].data[0], loss)
 
     def test_backward(self):
-	return
+	return"""
