@@ -95,27 +95,17 @@ __global__ void nearestBackwardGPU(const int nthreads,
 
 	CUDA_KERNEL_LOOP(index, nthreads) {
 		// resume channel idx and pixel idx
-		int w = index % input_size;
-		int h = (index / input_size) % input_size;
-		int c = (index / input_size / input_size) % input_channels;
-		int n = index / input_size / input_size / input_channels;
+		int rw = index % output_size;
+		int rh = (index / output_size) % output_size;
+		int c = (index / output_size / output_size) % input_channels;
+		int n = index / output_size / output_size / input_channels;
 		// indexing and sampling
-		int hstart = int(h * resize_factor);
-		int wstart = int(w * resize_factor);
-		int hend = int(hstart + resize_factor);
-		int wend = int(wstart + resize_factor);
-		hstart = max(hstart, 0);
-		wstart = max(wstart, 0);
-		hend = min(hend, output_size);
-		wend = min(wend, output_size);
-		top_diff += (n*input_channels + c) * output_size * output_size;
-		bottom_diff[index] = 0;		// DO NOT forget to reset before accumulation
-		for (int rh = hstart; rh < hend; ++rh) {
-		    for (int rw = wstart; rw < wend; ++rw) {
-			bottom_diff[index] += top_diff[rh * output_size + rw];
-		    }
-		}
-		bottom_diff[index] /= (hend-hstart) * (wend-wstart);
+		int h = int(rh / resize_factor);
+		int w = int(rw / resize_factor);
+		h = min(h, input_size - 1);
+		w = min(w, input_size - 1);
+		bottom_diff += (n*input_channels + c) * input_size * input_size;
+		bottom_diff[h * input_size + w] = top_diff[index];
 	}
 }
 
@@ -125,22 +115,50 @@ __global__ void bilinearBackwardGPU(const int nthreads,
 	Dtype* bottom_diff, const Dtype* top_diff) {
 
 	CUDA_KERNEL_LOOP(index, nthreads) {
+		// resume channel idx
+		int c = index % input_channels;
+		int n = index / input_channels;
+
+		// indexing and sampling
+		for (int rh = 0; rh < output_size; ++rh){
+		    for (int rw = 0; rw < output_size; ++rw){
+			float h = rh / resize_factor;
+			float w = rw / resize_factor;
+			int h0 = max(int(h), 0);
+			int h1 = min(int(h)+1, input_size - 1);
+			int w0 = max(int(w), 0);
+			int w1 = min(int(w)+1, input_size - 1);
+
+			float weight_w_w0 = max(1 - abs(w - w0), 0.);
+			float weight_w_w1 = max(1 - abs(w - w1), 0.);
+			float weight_h_h0 = max(1 - abs(h - h0), 0.);
+			float weight_h_h1 = max(1 - abs(h - h1), 0.);
+
+			Dtype* bottom_diff_channel = bottom_diff + (n*input_channels + c) * input_size * input_size;
+			int top_idx = ((n*input_channels + c) * output_size + rh ) * output_size + rw;
+			bottom_diff_channel[h0 * input_size + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h0;
+			bottom_diff_channel[h0 * input_size + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h0;
+			bottom_diff_channel[h1 * input_size + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h1;
+			bottom_diff_channel[h1 * input_size + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h1;
+		    }
+		}
+	}
+	/*CUDA_KERNEL_LOOP(index, nthreads) {
 		// resume channel idx and pixel idx
 		int w = index % input_size;
 		int h = (index / input_size) % input_size;
 		int c = (index / input_size / input_size) % input_channels;
 		int n = index / input_size / input_size / input_channels;
 		// indexing and sampling
-		int hstart = int(h * resize_factor);
-		int wstart = int(w * resize_factor);
-		int hend = int(hstart + resize_factor);
-		int wend = int(wstart + resize_factor);
+		int hstart = int((h - 1) * resize_factor) + 1;
+		int wstart = int((w - 1) * resize_factor) + 1;
+		int hend = int((h + 1) * resize_factor);
+		int wend = int((w + 1) * resize_factor);
 		hstart = max(hstart, 0);
 		wstart = max(wstart, 0);
-		hend = min(hend, output_size);
-		wend = min(wend, output_size);
+		hend = min(hend, output_size - 1);
+		wend = min(wend, output_size - 1);
 		top_diff += (n*input_channels + c) * output_size * output_size;
-		bottom_diff[index] = 0;		// DO NOT forget to reset before accumulation
 		for (int rh = hstart; rh < hend; ++rh) {
 		    for (int rw = wstart; rw < wend; ++rw) {
 			bottom_diff[index] += top_diff[rh * output_size + rw]
@@ -148,7 +166,7 @@ __global__ void bilinearBackwardGPU(const int nthreads,
 		    }
 		}
 		bottom_diff[index] /= (hend-hstart) * (wend-wstart);
-	}
+	}*/
 }
 
 template <typename Dtype>
@@ -158,20 +176,26 @@ void ResizeLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 
   const Dtype* top_diff = top[0]->gpu_diff();
   Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
-  const int count = bottom[0]->count();
-  caffe_gpu_set(count, Dtype(0.), bottom_diff);
+  const int bottom_count = bottom[0]->count();
+  caffe_gpu_set(bottom[0]->count(), Dtype(0.), bottom_diff);
+  const int top_count = top[0]->count();
+  int nthreads = top[0]->num() * top[0]->channels();
 
   // data gradient
   switch (this->layer_param_.resize_param().intepolation_type()) {
 	case ResizeParameter_InterpolationType_NEAREST:
-		nearestBackwardGPU<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>
-			(count, bottom[0]->channels(), this->input_size_, this->output_size_,
+		// parallel at pixel level
+		nearestBackwardGPU<Dtype><<<CAFFE_GET_BLOCKS(top_count), CAFFE_CUDA_NUM_THREADS>>>
+			(top_count, bottom[0]->channels(), this->input_size_, this->output_size_,
 			 this->resize_factor_, bottom_diff, top_diff);
 		break;
 	case ResizeParameter_InterpolationType_BILINEAR:
-		bilinearBackwardGPU<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>
-			(count, bottom[0]->channels(), this->input_size_, this->output_size_,
+		// parallel at channel level
+		bilinearBackwardGPU<Dtype><<<CAFFE_GET_BLOCKS(nthreads), CAFFE_CUDA_NUM_THREADS>>>
+			(nthreads, bottom[0]->channels(), this->input_size_, this->output_size_,
 			 this->resize_factor_, bottom_diff, top_diff);
+		// normalize
+		caffe_gpu_scal(bottom_count, this->resize_factor_>1 ? 1/this->resize_factor_/this->resize_factor_ : 1, bottom_diff);
 		break;
 	default:
 		LOG(FATAL) << "Unknown interpolation type.";

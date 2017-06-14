@@ -19,26 +19,32 @@ class ProbLayer(caffe.Layer):
 	return
 
     def reshape(self, bottom, top):
-	#top[0].reshape(*bottom[0].shape)
+	top[0].reshape(*bottom[1].shape)
 	return
 
     def forward(self, bottom, top):
-	#top[0].data[...] = bottom[0].data[...]
+	top[0].data[...] = bottom[1].data[...]
 	#----------- visualize -------------
 	#print '!!!!!!!!!!!!!!!!!!!!!!!', bottom[1].data.shape
-	plt.subplot(1,2,1)
+	#plt.subplot(1,2,1)
 	#plt.imshow(bottom[0].data[0,:,:,:].transpose([1,2,0]))
 	#print bottom[0].data.shape
-	plt.imshow(bottom[0].data[0,:,:,:].argmax(axis=0))
-	plt.subplot(1,2,2)
-	plt.imshow(bottom[1].data[0,0,:,:])
-	plt.show()
+	#plt.imshow(bottom[0].data[0,0,:,:])
+	#plt.subplot(1,2,2)
+	#plt.imshow(bottom[1].data[0,0,:,:])
+	#plt.show()
 
 	return
 
     def backward(self, top, propagate_down, bottom):
 	# --------- check gradient ----------
 	#print top[0].diff.sum()	
-	#bottom[0].diff[...] = top[0].diff[...]
+	bottom[1].diff[...] = top[0].diff[...]
+	# --------- plot gradient  ----------
+	plt.subplot(1,2,1)
+	plt.imshow(bottom[0].diff[0,0,:,:])
+	plt.subplot(1,2,2)
+	plt.imshow(bottom[1].diff[0,0,:,:])
+	plt.show()
 
 	return

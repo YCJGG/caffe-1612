@@ -126,24 +126,13 @@ void ResizeLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 	case ResizeParameter_InterpolationType_NEAREST:
 		for (int n = 0; n < top[0]->num(); ++n) {
 		    for (int c = 0; c < top[0]->channels(); ++c) {
-			for (int h = 0; h < this->input_size_; ++h) {
-			    for (int w = 0; w < this->input_size_; ++w) {
-				int hstart = int(h * this->resize_factor_);
-				int wstart = int(w * this->resize_factor_);
-				int hend = int(hstart + this->resize_factor_);
-				int wend = int(wstart + this->resize_factor_);
-				hstart = std::max(hstart, 0);
-				wstart = std::max(wstart, 0);
-				hend = std::min(hend, this->output_size_);
-				wend = std::min(wend, this->output_size_);
-				const int bottom_idx = h * this->input_size_ + w;
-				bottom_diff[bottom_idx] = 0;		// DO NOT forget to reset before accumulation
-				for (int rh = hstart; rh < hend; ++rh) {
-				    for (int rw = wstart; rw < wend; ++rw) {
-					bottom_diff[bottom_idx] += top_diff[rh * this->output_size_ + rw];
-				    }
-				}
-				bottom_diff[bottom_idx] /= (hend-hstart) * (wend-wstart);
+			for (int rh = 0; rh < this->output_size_; ++rh) {
+			    for (int rw = 0; rw < this->output_size_; ++rw) {
+				int h = int(rh / this->resize_factor_);
+				int w = int(rw / this->resize_factor_);
+				h = std::min(h, this->input_size_ - 1);
+				w = std::min(w, this->input_size_ - 1);
+				bottom_diff[h * this->input_size_ + w] = top_diff[rh * this->output_size_ + rw];
 			    }
 			}
 			// offset
@@ -155,18 +144,45 @@ void ResizeLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 	case ResizeParameter_InterpolationType_BILINEAR:
 		for (int n = 0; n < top[0]->num(); ++n) {
 		    for (int c = 0; c < top[0]->channels(); ++c) {
+			for (int rh = 0; rh < this->output_size_; ++rh) {
+			    for (int rw = 0; rw < this->output_size_; ++rw) {
+				float h = rh / this->resize_factor_;
+				float w = rw / this->resize_factor_;
+				int h0 = std::max(int(h), 0);
+				int h1 = std::min(int(h)+1, this->input_size_ - 1);
+				int w0 = std::max(int(w), 0);
+				int w1 = std::min(int(w)+1, this->input_size_ - 1);
+				int top_idx = rh * this->output_size_ + rw;
+
+				float weight_w_w0 = std::max(1 - std::abs(w - w0), float (0));
+				float weight_w_w1 = std::max(1 - std::abs(w - w1), float (0));
+				float weight_h_h0 = std::max(1 - std::abs(h - h0), float (0));
+				float weight_h_h1 = std::max(1 - std::abs(h - h1), float (0));
+
+				bottom_diff[h0 * this->input_size_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h0;
+				bottom_diff[h0 * this->input_size_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h0;
+				bottom_diff[h1 * this->input_size_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h1;
+				bottom_diff[h1 * this->input_size_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h1;
+			    }
+			}
+			// offset
+			bottom_diff += bottom[0]->offset(0, 1);
+			top_diff += top[0]->offset(0, 1);
+		    }
+		}
+		/*for (int n = 0; n < top[0]->num(); ++n) {
+		    for (int c = 0; c < top[0]->channels(); ++c) {
 			for (int h = 0; h < this->input_size_; ++h) {
 			    for (int w = 0; w < this->input_size_; ++w) {
-				int hstart = int(h * this->resize_factor_);
-				int wstart = int(w * this->resize_factor_);
-				int hend = int(hstart + this->resize_factor_);
-				int wend = int(wstart + this->resize_factor_);
+				int hstart = int((h - 1) * this->resize_factor_) + 1;
+				int wstart = int((w - 1) * this->resize_factor_) + 1;
+				int hend = int((h + 1) * this->resize_factor_);
+				int wend = int((w + 1) * this->resize_factor_);
 				hstart = std::max(hstart, 0);
 				wstart = std::max(wstart, 0);
-				hend = std::min(hend, this->output_size_);
-				wend = std::min(wend, this->output_size_);
+				hend = std::min(hend, this->output_size_ - 1);
+				wend = std::min(wend, this->output_size_ - 1);
 				const int bottom_idx = h * this->input_size_ + w;
-				bottom_diff[bottom_idx] = 0;		// DO NOT forget to reset before accumulation
 				for (int rh = hstart; rh < hend; ++rh) {
 				    for (int rw = wstart; rw < wend; ++rw) {
 					bottom_diff[bottom_idx] += top_diff[rh * this->output_size_ + rw] 
@@ -180,7 +196,7 @@ void ResizeLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 			bottom_diff += bottom[0]->offset(0, 1);
 			top_diff += top[0]->offset(0, 1);
 		    }
-		}
+		}*/
 						
 		break;
 	default:
