@@ -25,7 +25,7 @@ def python_param_net_file():
 	 top: 'resize'
          resize_param {
 	   function_type: BLOB_ALIGN
-	   intepolation_type: NEAREST
+	   intepolation_type: BILINEAR
 	   output_size: 128
 	 } }""")
         return f.name

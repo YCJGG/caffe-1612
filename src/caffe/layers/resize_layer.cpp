@@ -84,7 +84,28 @@ void ResizeLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 		}
 		break;
 	case ResizeParameter_InterpolationType_BILINEAR:
-		// not implemented
+		for (int n = 0; n < bottom[0]->num(); ++n) {
+		    for (int c = 0; c < bottom[0]->channels(); ++c) {
+			for (int rh = 0; rh < this->output_size_; ++rh) {
+			    for (int rw = 0; rw < this->output_size_; ++rw) {
+				int h = int(rh / this->resize_factor_);
+				int w = int(rw / this->resize_factor_);
+				h = std::min(h, this->input_size_);
+				w = std::min(w, this->input_size_);
+				int top_idx = rh * this->output_size_ + rw;
+				top_data[top_idx] = 0;		// DO NOT forget to reset before accumulation
+				for (int n = std::max(static_cast<int>(h-1) + 1, 0); n < std::min(h + 1, this->input_size_); n++) {
+				    for (int m = std::max(static_cast<int>(w-1) + 1, 0); m < std::min(w + 1, this->input_size_); m++) {
+					top_data[top_idx] += bottom_data[n * this->input_size_ + m] * (1 - std::abs(w-m)) * (1 - std::abs(h-n));
+				    }
+				}
+			    }
+			}
+			// compute offset
+			bottom_data += bottom[0]->offset(0, 1);
+			top_data += top[0]->offset(0, 1);
+		    }
+		}
 		break;
 	default:
 		LOG(FATAL) << "Unknown interpolation type.";
@@ -115,12 +136,14 @@ void ResizeLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 				wstart = std::max(wstart, 0);
 				hend = std::min(hend, this->output_size_);
 				wend = std::min(wend, this->output_size_);
+				const int bottom_idx = h * this->input_size_ + w;
+				bottom_diff[bottom_idx] = 0;		// DO NOT forget to reset before accumulation
 				for (int rh = hstart; rh < hend; ++rh) {
 				    for (int rw = wstart; rw < wend; ++rw) {
-					bottom_diff[h * this->input_size_ + w] += top_diff[rh * this->output_size_ + rw];
+					bottom_diff[bottom_idx] += top_diff[rh * this->output_size_ + rw];
 				    }
 				}
-				bottom_diff[h * this->input_size_ + w] /= (hend-hstart) * (wend-wstart);
+				bottom_diff[bottom_idx] /= (hend-hstart) * (wend-wstart);
 			    }
 			}
 			// offset
@@ -130,7 +153,35 @@ void ResizeLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 		}
 		break;
 	case ResizeParameter_InterpolationType_BILINEAR:
-		// not implemented
+		for (int n = 0; n < top[0]->num(); ++n) {
+		    for (int c = 0; c < top[0]->channels(); ++c) {
+			for (int h = 0; h < this->input_size_; ++h) {
+			    for (int w = 0; w < this->input_size_; ++w) {
+				int hstart = int(h * this->resize_factor_);
+				int wstart = int(w * this->resize_factor_);
+				int hend = int(hstart + this->resize_factor_);
+				int wend = int(wstart + this->resize_factor_);
+				hstart = std::max(hstart, 0);
+				wstart = std::max(wstart, 0);
+				hend = std::min(hend, this->output_size_);
+				wend = std::min(wend, this->output_size_);
+				const int bottom_idx = h * this->input_size_ + w;
+				bottom_diff[bottom_idx] = 0;		// DO NOT forget to reset before accumulation
+				for (int rh = hstart; rh < hend; ++rh) {
+				    for (int rw = wstart; rw < wend; ++rw) {
+					bottom_diff[bottom_idx] += top_diff[rh * this->output_size_ + rw] 
+                                          * (1 - std::abs((rw / this->resize_factor_) - w)) * (1 - std::abs((rh / this->resize_factor_) - h));
+				    }
+				}
+				bottom_diff[bottom_idx] /= (hend-hstart) * (wend-wstart);
+			    }
+			}
+			// offset
+			bottom_diff += bottom[0]->offset(0, 1);
+			top_diff += top[0]->offset(0, 1);
+		    }
+		}
+						
 		break;
 	default:
 		LOG(FATAL) << "Unknown interpolation type.";
