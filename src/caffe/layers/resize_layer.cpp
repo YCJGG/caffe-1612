@@ -126,12 +126,12 @@ void ResizeLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 	case ResizeParameter_InterpolationType_NEAREST:
 		for (int n = 0; n < top[0]->num(); ++n) {
 		    for (int c = 0; c < top[0]->channels(); ++c) {
-			for (int rh = 0; rh < this->output_size_; ++rh) {
-			    for (int rw = 0; rw < this->output_size_; ++rw) {
-				int h = int(rh / this->resize_factor_);
-				int w = int(rw / this->resize_factor_);
-				h = std::min(h, this->input_size_ - 1);
-				w = std::min(w, this->input_size_ - 1);
+			for (int h = 0; h < this->input_size_; ++h) {
+			    for (int w = 0; w < this->input_size_; ++w) {
+				int rh = int(h * this->resize_factor_);
+				int rw = int(w * this->resize_factor_);
+				rh = std::min(rh, this->output_size_ - 1);
+				rw = std::min(rw, this->output_size_ - 1);
 				bottom_diff[h * this->input_size_ + w] = top_diff[rh * this->output_size_ + rw];
 			    }
 			}

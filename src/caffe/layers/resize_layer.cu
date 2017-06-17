@@ -30,8 +30,8 @@ __global__ void nearestForwardGPU(const int nthreads,
 		int w = int(rw / resize_factor);
 		h = min(h, input_size);
 		w = min(w, input_size);
-		bottom_data += (n * input_channels + c) * input_size * input_size;
-		top_data[index] = bottom_data[h * input_size + w];
+		const Dtype* bottom_data_channel = bottom_data + (n * input_channels + c) * input_size * input_size;
+		top_data[index] = bottom_data_channel[h * input_size + w];
 	}
 }
 
@@ -51,11 +51,11 @@ __global__  void bilinearForwardGPU(const int nthreads,
 		int w = int(rw / resize_factor);
 		h = min(h, input_size);
 		w = min(w, input_size);
-		bottom_data += (n * input_channels + c) * input_size * input_size;
+		const Dtype* bottom_data_channel = bottom_data + (n * input_channels + c) * input_size * input_size;
 		top_data[index] = 0;		// DO NOT forget to reset before accumulation
 		for (int n = max(static_cast<int>(h-1) + 1, 0); n < min(h + 1, input_size); n++) {
 		    for (int m = max(static_cast<int>(w-1) + 1, 0); m < min(w + 1, input_size); m++) {
-			top_data[index] += bottom_data[n * input_size + m] * (1 - abs(w - m)) * (1 - abs(h - n));
+			top_data[index] += bottom_data_channel[n * input_size + m] * (1 - abs(w - m)) * (1 - abs(h - n));
 		    }
 		}
 	}
@@ -95,17 +95,17 @@ __global__ void nearestBackwardGPU(const int nthreads,
 
 	CUDA_KERNEL_LOOP(index, nthreads) {
 		// resume channel idx and pixel idx
-		int rw = index % output_size;
-		int rh = (index / output_size) % output_size;
-		int c = (index / output_size / output_size) % input_channels;
-		int n = index / output_size / output_size / input_channels;
+		int w = index % input_size;
+		int h = (index / input_size) % input_size;
+		int c = (index / input_size / input_size) % input_channels;
+		int n = index / input_size / input_size / input_channels;
 		// indexing and sampling
-		int h = int(rh / resize_factor);
-		int w = int(rw / resize_factor);
-		h = min(h, input_size - 1);
-		w = min(w, input_size - 1);
-		bottom_diff += (n*input_channels + c) * input_size * input_size;
-		bottom_diff[h * input_size + w] = top_diff[index];
+		int rh = int(h * resize_factor);
+		int rw = int(w * resize_factor);
+		rh = min(rh, output_size - 1);
+		rw = min(rw, output_size - 1);
+		top_diff += (n*input_channels + c) * output_size * output_size;
+		bottom_diff[index] = top_diff[rh * output_size + rw];
 	}
 }
 
@@ -185,8 +185,8 @@ void ResizeLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   switch (this->layer_param_.resize_param().intepolation_type()) {
 	case ResizeParameter_InterpolationType_NEAREST:
 		// parallel at pixel level
-		nearestBackwardGPU<Dtype><<<CAFFE_GET_BLOCKS(top_count), CAFFE_CUDA_NUM_THREADS>>>
-			(top_count, bottom[0]->channels(), this->input_size_, this->output_size_,
+		nearestBackwardGPU<Dtype><<<CAFFE_GET_BLOCKS(bottom_count), CAFFE_CUDA_NUM_THREADS>>>
+			(bottom_count, bottom[0]->channels(), this->input_size_, this->output_size_,
 			 this->resize_factor_, bottom_diff, top_diff);
 		break;
 	case ResizeParameter_InterpolationType_BILINEAR:

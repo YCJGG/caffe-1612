@@ -10,7 +10,7 @@ from scipy import misc
 import caffe
 
 in_size = 122
-out_size = 190
+out_size = 61
 
 def python_param_net_file():
     with tempfile.NamedTemporaryFile(mode='w+', delete=False) as f:
@@ -19,7 +19,7 @@ def python_param_net_file():
         input: 'data'
 	input_shape { dim:1 dim: 3 dim: 122 dim: 122}
         input: 'label'
-	input_shape { dim:1 dim: 3 dim: 190 dim: 190}
+	input_shape { dim:1 dim: 3 dim: 61 dim: 61}
         layer {
 	 type: 'Resize'
 	 name: 'resize'

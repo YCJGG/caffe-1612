@@ -27,7 +27,7 @@ class BlobAlignLayer(caffe.Layer):
 	if len(bottom) != 2:
 	    raise Exception("Blob align layer accepts two bottoms")
 	# select interpolation algorithm
-	self.inter_order = 1	# default bilinear
+	self.inter_order = 0	# default bilinear
 	if self.param_str == "nearest":
 	    self.inter_order = 0
 	elif self.param_str == "bilinear":
