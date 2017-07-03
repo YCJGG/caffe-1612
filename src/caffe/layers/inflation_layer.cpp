@@ -113,12 +113,6 @@ template <typename Dtype>
 void InflationLayer<Dtype>::inflate_forward(const Dtype *bottom_data, const int bottom_height, const int bottom_width, 
                                             Dtype *top_data, const int top_height, const int top_width, 
                                             const float factor, Dtype *factor_diff_matrix, const Dtype* label) {
-
-    const float anchor_y = 0; //(bottom_height - 1) / 2.0;
-    const float anchor_x = 0; //(bottom_width - 1) / 2.0;
-    
-    const float normalizer = margin_ * margin_ * margin_ * margin_;
-
     for (int y_t = 0; y_t < top_height; y_t++) {
         for (int x_t = 0; x_t < top_width; x_t++) {
             
@@ -133,14 +127,14 @@ void InflationLayer<Dtype>::inflate_forward(const Dtype *bottom_data, const int 
             CHECK_LT(y_s, bottom_height);
             CHECK_LT(x_s, bottom_width);
             
-            for (int n = MAX(floor(y_s - margin_) + 1, 0); n < MIN(y_s + margin_, bottom_height); n++) {
-                for (int m = MAX(floor(x_s - margin_) + 1, 0); m < MIN(x_s + margin_, bottom_width); m++) {
+            for (int n = MAX(floor(y_s - 1) + 1, 0); n < MIN(y_s + 1, bottom_height); n++) {
+                for (int m = MAX(floor(x_s - 1) + 1, 0); m < MIN(x_s + 1, bottom_width); m++) {
              
-                    top_data[idx_t] += bottom_data[n * bottom_width + m] * (margin_ - abs(x_s - m)) * (margin_ - abs(y_s - n));
+                    top_data[idx_t] += bottom_data[n * bottom_width + m] * (1 - abs(x_s - m)) * (1 - abs(y_s - n));
                     
                     factor_diff_matrix[idx_t] += bottom_data[n * bottom_width + m] 
-                                                 * ((2 * (m >= x_s) - 1) * (margin_ - abs(y_s - n)) * (-(x_s - anchor_x) / factor)
-                                                   +(2 * (n >= y_s) - 1) * (margin_ - abs(x_s - m)) * (-(y_s - anchor_y) / factor));
+                                                 * ((2 * (m >= x_s) - 1) * (1 - abs(y_s - n)) * (-x_s / factor)
+                                                   +(2 * (n >= y_s) - 1) * (1 - abs(x_s - m)) * (-y_s / factor));
 
 		    // when using background mask
 		    if (label!= NULL && label[int(round(idx_t*this->factor_bg_mask))] == 0)
@@ -149,10 +143,6 @@ void InflationLayer<Dtype>::inflate_forward(const Dtype *bottom_data, const int 
 		    }
                 }
             }
-            
-            // normalize
-            top_data[idx_t] /= normalizer;
-            factor_diff_matrix[idx_t] /= normalizer;
         }
     }
 }
@@ -199,7 +189,7 @@ template <typename Dtype>
 void InflationLayer<Dtype>::inflate_backward(Dtype *bottom_diff, const int bottom_height, const int bottom_width, 
                                              const Dtype *top_diff, const int top_height, const int top_width, 
                                              const float factor) {
-    const float normalizer = factor * factor * margin_ * margin_ * margin_ * margin_;
+    const float normalizer = factor * factor;
     
     for (int n = 0; n < bottom_height; n++) {
         for (int m = 0; m < bottom_width; m++) {
@@ -208,11 +198,11 @@ void InflationLayer<Dtype>::inflate_backward(Dtype *bottom_diff, const int botto
             const int idx_s = n * bottom_width + m;
             bottom_diff[idx_s] = 0;
             
-            for (int y_t = MAX(floor((n - margin_) * factor) + 1, 0); y_t < MIN((n + margin_) * factor, top_height); y_t++) { 
-                for (int x_t = MAX(floor((m - margin_) * factor) + 1, 0); x_t < MIN((m + margin_) * factor, top_width); x_t++) {
+            for (int y_t = MAX(floor((n - 1) * factor) + 1, 0); y_t < MIN((n + 1) * factor, top_height); y_t++) { 
+                for (int x_t = MAX(floor((m - 1) * factor) + 1, 0); x_t < MIN((m + 1) * factor, top_width); x_t++) {
                     // diff
                     bottom_diff[idx_s] += top_diff[y_t * top_width + x_t] 
-                                          * (margin_ - abs((x_t / factor) - m)) * (margin_ - abs((y_t / factor) - n));               
+                                          * (1 - abs((x_t / factor) - m)) * (1 - abs((y_t / factor) - n));               
                 }
             }
             // normalize
@@ -240,7 +230,6 @@ void InflationLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const Dtype* factor_diff_matrix = factor_diff_.cpu_data();
 
     if (propagate_down[0]) {
-
         // compute diff for bottom    
         for (int n = 0; n < num; n++) {
             for (int c = 0; c < channels; c++) {
@@ -260,15 +249,18 @@ void InflationLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         Dtype sum_dLoss_dfactor = caffe_cpu_dot(top[0]->count(), factor_diff_matrix,  top_diff);
         
         const Dtype* top_factor_diff = top[1]->cpu_diff();       
-        
 	Dtype tmp = static_cast<Dtype>(1.0 * sum_dLoss_dfactor / num / height / width + top_factor_diff[0]);
 
+	if (this->layer_param().inflation_factor_param().clip_gradient() == true)
+	{
+	    float MARGIN = this->layer_param().inflation_factor_param().clip_gradient_value();
+	    tmp = MAX(MIN(tmp, MARGIN), -MARGIN);
+	}
         *factor_diff += tmp;
 	if (this->layer_param().inflation_factor_param().clip_gradient() == true)
 	{
 	    float MARGIN = this->layer_param().inflation_factor_param().clip_gradient_value();
-	    if (*factor_diff > MARGIN) *factor_diff = MARGIN;
-	    if (*factor_diff < -MARGIN) *factor_diff = -MARGIN;
+	    *factor_diff = MAX(MIN(*factor_diff, MARGIN), -MARGIN);
 	}
 
         LOG(INFO) << " No." << iter_counter_ % 4
