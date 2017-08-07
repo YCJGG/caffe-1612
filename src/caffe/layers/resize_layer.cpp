@@ -148,23 +148,41 @@ void ResizeLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 			    for (int rw = 0; rw < this->output_size_; ++rw) {
 				float h = rh / this->resize_factor_;
 				float w = rw / this->resize_factor_;
-				int h0 = std::max(int(h), 0);
-				int h1 = std::min(int(h)+1, this->input_size_ - 1);
-				int w0 = std::max(int(w), 0);
-				int w1 = std::min(int(w)+1, this->input_size_ - 1);
-				int top_idx = rh * this->output_size_ + rw;
 
+				int top_idx = rh * this->output_size_ + rw;
+				int h0 = std::max(int(h), 0);
+				int w0 = std::max(int(w), 0);
+				int h1 = 0;
+				float weight_h_h1 = 0;
 				float weight_w_w0 = std::max(1 - std::abs(w - w0), float (0));
-				float weight_w_w1 = std::max(1 - std::abs(w - w1), float (0));
 				float weight_h_h0 = std::max(1 - std::abs(h - h0), float (0));
-				float weight_h_h1 = std::max(1 - std::abs(h - h1), float (0));
+				if (h < this->input_size_-1) {				// h1 does not exceed input_size
+					h1 = std::min(int(h)+1, this->input_size_ - 1);
+					weight_h_h1 = std::max(1 - std::abs(h - h1), float (0));
+					if (w0 == 0) {					// the first column
+						bottom_diff[h1 * this->input_size_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h1 * 2;
+					} else {
+						bottom_diff[h1 * this->input_size_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h1;
+					}
+				}
+				if (w < this->input_size_-1) {				// w1 does not exceed input_size
+					int w1 = std::min(int(w)+1, this->input_size_ - 1);
+					float weight_w_w1 = std::max(1 - std::abs(w - w1), float (0));
+					if (h0 == 0) {					// the first row
+						bottom_diff[h0 * this->input_size_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h0*2;
+					} else {
+						bottom_diff[h0 * this->input_size_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h0;
+					}
+					if (h < this->input_size_-1) {			// for the very left-bottom one
+						bottom_diff[h1 * this->input_size_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h1;
+					}
+				}
 
 				bottom_diff[h0 * this->input_size_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h0;
-				bottom_diff[h0 * this->input_size_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h0;
-				bottom_diff[h1 * this->input_size_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h1;
-				bottom_diff[h1 * this->input_size_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h1;
 			    }
 			}
+			// normalize
+			caffe_scal(bottom[0]->count(), this->resize_factor_>1 ? 1/this->resize_factor_/this->resize_factor_ : 1, bottom_diff);
 			// offset
 			bottom_diff += bottom[0]->offset(0, 1);
 			top_diff += top[0]->offset(0, 1);

@@ -26,15 +26,16 @@ class ProbLayer(caffe.Layer):
 	#top[0].data[...] = bottom[0].data[...]
 	#----------- visualize -------------
 	#print '!!!!!!!!!!!!!!!!!!!!!!!', bottom[1].data.shape
-	plt.subplot(1,3,1)
+	#plt.subplot(1,3,1)
 	#plt.imshow(bottom[0].data[0,:,:,:].transpose([1,2,0]))
 	#print bottom[0].data.shape
-	plt.imshow(bottom[0].data[0,0,:,:])
-	plt.subplot(1,3,2)
-	plt.imshow(bottom[1].data[0,0,:,:])
-	plt.subplot(1,3,3)
-	plt.imshow(bottom[2].data[0,0,:,:])
-	plt.show()
+	#plt.imshow(bottom[0].data[0,0,:,:])
+	#plt.subplot(1,3,2)
+	#plt.imshow(bottom[1].data[0,0,:,:])
+	#plt.subplot(1,3,3)
+	#plt.imshow(bottom[2].data[0,0,:,:])
+	#plt.show()
+	#print '!!!!!!!!!!!!!!!!!!!!!!!'
 
 	return
 
