@@ -48,11 +48,25 @@ def extract_seconds(input_file, output_file):
     start_datetime = get_start_time(lines, log_created_year)
     assert start_datetime, 'Start time not found'
 
+<<<<<<< HEAD
+=======
+    last_dt = start_datetime
+>>>>>>> caffe-bvlc-dev/master
     out = open(output_file, 'w')
     for line in lines:
         line = line.strip()
         if line.find('Iteration') != -1:
             dt = extract_datetime_from_line(line, log_created_year)
+<<<<<<< HEAD
+=======
+
+            # if it's another year
+            if dt.month < last_dt.month:
+                log_created_year += 1
+                dt = extract_datetime_from_line(line, log_created_year)
+            last_dt = dt
+
+>>>>>>> caffe-bvlc-dev/master
             elapsed_seconds = (dt - start_datetime).total_seconds()
             out.write('%f\n' % elapsed_seconds)
     out.close()

@@ -252,6 +252,10 @@ CuDNNConvolutionLayer<Dtype>::~CuDNNConvolutionLayer() {
   }
 
   cudaFree(workspaceData);
+<<<<<<< HEAD
+=======
+  delete [] workspace;
+>>>>>>> caffe-bvlc-dev/master
   delete [] stream_;
   delete [] handle_;
   delete [] fwd_algo_;

@@ -3,10 +3,18 @@ import os
 import sys
 import time
 import yaml
+<<<<<<< HEAD
 import urllib
 import hashlib
 import argparse
 
+=======
+import hashlib
+import argparse
+
+from six.moves import urllib
+
+>>>>>>> caffe-bvlc-dev/master
 required_keys = ['caffemodel', 'caffemodel_url', 'sha1']
 
 
@@ -69,7 +77,11 @@ if __name__ == '__main__':
         sys.exit(0)
 
     # Download and verify model.
+<<<<<<< HEAD
     urllib.urlretrieve(
+=======
+    urllib.request.urlretrieve(
+>>>>>>> caffe-bvlc-dev/master
         frontmatter['caffemodel_url'], model_filename, reporthook)
     if not model_checks_out():
         print('ERROR: model did not download correctly! Run this again.')

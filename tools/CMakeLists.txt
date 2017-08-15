@@ -25,5 +25,10 @@ foreach(source ${srcs})
   endif()
 
   # Install
+<<<<<<< HEAD
   install(TARGETS ${name} DESTINATION bin)
+=======
+  install(TARGETS ${name} DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+>>>>>>> caffe-bvlc-dev/master
 endforeach(source)

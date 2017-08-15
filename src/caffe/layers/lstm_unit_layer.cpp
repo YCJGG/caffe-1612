@@ -31,7 +31,10 @@ void LSTMUnitLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
     CHECK_EQ(num_instances, bottom[i]->shape(1));
   }
   hidden_dim_ = bottom[0]->shape(2);
+<<<<<<< HEAD
   CHECK_EQ(num_instances, bottom[1]->shape(1));
+=======
+>>>>>>> caffe-bvlc-dev/master
   CHECK_EQ(4 * hidden_dim_, bottom[1]->shape(2));
   top[0]->ReshapeLike(*bottom[0]);
   top[1]->ReshapeLike(*bottom[0]);

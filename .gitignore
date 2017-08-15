@@ -84,6 +84,10 @@ cmake_build
 
 # Generated documentation
 docs/_site
+<<<<<<< HEAD
+=======
+docs/_includes
+>>>>>>> caffe-bvlc-dev/master
 docs/gathered
 _site
 doxygen

@@ -1,5 +1,6 @@
 
 ################################################################################################
+<<<<<<< HEAD
 # Helper function to fetch caffe includes which will be passed to dependent projects
 # Usage:
 #   caffe_get_current_includes(<includes_list_variable>)
@@ -27,6 +28,8 @@ function(caffe_get_current_includes includes_variable)
 endfunction()
 
 ################################################################################################
+=======
+>>>>>>> caffe-bvlc-dev/master
 # Helper function to get all list items that begin with given prefix
 # Usage:
 #   caffe_get_items_with_prefix(<prefix> <list_variable> <output_variable>)
@@ -47,6 +50,7 @@ endfunction()
 function(caffe_generate_export_configs)
   set(install_cmake_suffix "share/Caffe")
 
+<<<<<<< HEAD
   # ---[ Configure build-tree CaffeConfig.cmake file ]---
   caffe_get_current_includes(Caffe_INCLUDE_DIRS)
 
@@ -69,10 +73,15 @@ function(caffe_generate_export_configs)
 
   if(USE_LEVELDB)
     list(APPEND Caffe_DEFINITIONS -DUSE_LEVELDB)
+=======
+  if(NOT HAVE_CUDA)
+    set(HAVE_CUDA FALSE)
+>>>>>>> caffe-bvlc-dev/master
   endif()
 
   if(NOT HAVE_CUDNN)
     set(HAVE_CUDNN FALSE)
+<<<<<<< HEAD
   else()
     list(APPEND DEFINITIONS -DUSE_CUDNN)
   endif()
@@ -80,15 +89,25 @@ function(caffe_generate_export_configs)
   if(BLAS STREQUAL "MKL" OR BLAS STREQUAL "mkl")
     list(APPEND Caffe_DEFINITIONS -DUSE_MKL)
   endif()
+=======
+  endif()
+
+  # ---[ Configure build-tree CaffeConfig.cmake file ]---
+>>>>>>> caffe-bvlc-dev/master
 
   configure_file("cmake/Templates/CaffeConfig.cmake.in" "${PROJECT_BINARY_DIR}/CaffeConfig.cmake" @ONLY)
 
   # Add targets to the build-tree export set
+<<<<<<< HEAD
   export(TARGETS caffe proto FILE "${PROJECT_BINARY_DIR}/CaffeTargets.cmake")
+=======
+  export(TARGETS caffe caffeproto FILE "${PROJECT_BINARY_DIR}/CaffeTargets.cmake")
+>>>>>>> caffe-bvlc-dev/master
   export(PACKAGE Caffe)
 
   # ---[ Configure install-tree CaffeConfig.cmake file ]---
 
+<<<<<<< HEAD
   # remove source and build dir includes
   caffe_get_items_with_prefix(${PROJECT_SOURCE_DIR} Caffe_INCLUDE_DIRS __insource)
   caffe_get_items_with_prefix(${PROJECT_BINARY_DIR} Caffe_INCLUDE_DIRS __inbinary)
@@ -101,6 +120,8 @@ function(caffe_generate_export_configs)
      "unset(__caffe_include)\n")
   string(REPLACE ";" "" Caffe_INSTALL_INCLUDE_DIR_APPEND_COMMAND ${lines})
 
+=======
+>>>>>>> caffe-bvlc-dev/master
   configure_file("cmake/Templates/CaffeConfig.cmake.in" "${PROJECT_BINARY_DIR}/cmake/CaffeConfig.cmake" @ONLY)
 
   # Install the CaffeConfig.cmake and export set to use with install-tree
@@ -109,7 +130,11 @@ function(caffe_generate_export_configs)
 
   # ---[ Configure and install version file ]---
 
+<<<<<<< HEAD
   # TODO: Lines below are commented because Caffe does't declare its version in headers.
+=======
+  # TODO: Lines below are commented because Caffe doesn't declare its version in headers.
+>>>>>>> caffe-bvlc-dev/master
   # When the declarations are added, modify `caffe_extract_caffe_version()` macro and uncomment
 
   # configure_file(cmake/Templates/CaffeConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/CaffeConfigVersion.cmake" @ONLY)

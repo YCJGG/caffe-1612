@@ -11,7 +11,11 @@ except:
 import numpy as np
 
 from ._caffe import Net, SGDSolver, NesterovSolver, AdaGradSolver, \
+<<<<<<< HEAD
         RMSPropSolver, AdaDeltaSolver, AdamSolver
+=======
+        RMSPropSolver, AdaDeltaSolver, AdamSolver, NCCL, Timer
+>>>>>>> caffe-bvlc-dev/master
 import caffe.io
 
 import six
@@ -43,6 +47,19 @@ def _Net_blob_loss_weights(self):
                                                        self._blob_loss_weights))
     return self._blob_loss_weights_dict
 
+<<<<<<< HEAD
+=======
+@property
+def _Net_layer_dict(self):
+    """
+    An OrderedDict (bottom to top, i.e., input to output) of network
+    layers indexed by name
+    """
+    if not hasattr(self, '_layer_dict'):
+        self._layer_dict = OrderedDict(zip(self._layer_names, self.layers))
+    return self._layer_dict
+
+>>>>>>> caffe-bvlc-dev/master
 
 @property
 def _Net_params(self):
@@ -103,7 +120,11 @@ def _Net_forward(self, blobs=None, start=None, end=None, **kwargs):
 
     if end is not None:
         end_ind = list(self._layer_names).index(end)
+<<<<<<< HEAD
         outputs = set([end] + blobs)
+=======
+        outputs = set(self.top_names[end] + blobs)
+>>>>>>> caffe-bvlc-dev/master
     else:
         end_ind = len(self.layers) - 1
         outputs = set(self.outputs + blobs)
@@ -151,7 +172,11 @@ def _Net_backward(self, diffs=None, start=None, end=None, **kwargs):
 
     if end is not None:
         end_ind = list(self._layer_names).index(end)
+<<<<<<< HEAD
         outputs = set([end] + diffs)
+=======
+        outputs = set(self.bottom_names[end] + diffs)
+>>>>>>> caffe-bvlc-dev/master
     else:
         end_ind = 0
         outputs = set(self.inputs + diffs)
@@ -321,6 +346,10 @@ def _Net_get_id_name(func, field):
 # Attach methods to Net.
 Net.blobs = _Net_blobs
 Net.blob_loss_weights = _Net_blob_loss_weights
+<<<<<<< HEAD
+=======
+Net.layer_dict = _Net_layer_dict
+>>>>>>> caffe-bvlc-dev/master
 Net.params = _Net_params
 Net.forward = _Net_forward
 Net.backward = _Net_backward

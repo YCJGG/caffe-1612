@@ -28,7 +28,11 @@ find_path(Atlas_CLAPACK_INCLUDE_DIR NAMES clapack.h PATHS ${Atlas_INCLUDE_SEARCH
 
 find_library(Atlas_CBLAS_LIBRARY NAMES  ptcblas_r ptcblas cblas_r cblas       PATHS ${Atlas_LIB_SEARCH_PATHS})
 find_library(Atlas_BLAS_LIBRARY NAMES   atlas_r   atlas                       PATHS ${Atlas_LIB_SEARCH_PATHS})
+<<<<<<< HEAD
 find_library(Atlas_LAPACK_LIBRARY NAMES lapack alapack_r alapack lapack_atlas PATHS ${Atlas_LIB_SEARCH_PATHS})
+=======
+find_library(Atlas_LAPACK_LIBRARY NAMES lapack alapack_r alapack lapack_atlas atllapack PATHS ${Atlas_LIB_SEARCH_PATHS})
+>>>>>>> caffe-bvlc-dev/master
 
 set(LOOKED_FOR
   Atlas_CBLAS_INCLUDE_DIR
@@ -47,6 +51,10 @@ if(ATLAS_FOUND)
   set(Atlas_LIBRARIES ${Atlas_LAPACK_LIBRARY} ${Atlas_CBLAS_LIBRARY} ${Atlas_BLAS_LIBRARY})
   mark_as_advanced(${LOOKED_FOR})
 
+<<<<<<< HEAD
   message(STATUS "Found Atlas (include: ${Atlas_CBLAS_INCLUDE_DIR}, library: ${Atlas_BLAS_LIBRARY})")
+=======
+  message(STATUS "Found Atlas (include: ${Atlas_CBLAS_INCLUDE_DIR} library: ${Atlas_BLAS_LIBRARY} lapack: ${Atlas_LAPACK_LIBRARY}")
+>>>>>>> caffe-bvlc-dev/master
 endif(ATLAS_FOUND)
 

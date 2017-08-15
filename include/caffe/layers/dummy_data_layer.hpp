@@ -22,8 +22,11 @@ class DummyDataLayer : public Layer<Dtype> {
       : Layer<Dtype>(param) {}
   virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
+<<<<<<< HEAD
   // Data layers should be shared by multiple solvers in parallel
   virtual inline bool ShareInParallel() const { return true; }
+=======
+>>>>>>> caffe-bvlc-dev/master
   // Data layers have no bottoms, so reshaping is trivial.
   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {}

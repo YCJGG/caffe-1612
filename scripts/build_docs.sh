@@ -12,6 +12,12 @@ cd $ROOT_DIR
 # Gather docs.
 scripts/gather_examples.sh
 
+<<<<<<< HEAD
+=======
+# Split caffe.proto for inclusion by layer catalogue.
+scripts/split_caffe_proto.py
+
+>>>>>>> caffe-bvlc-dev/master
 # Generate developer docs.
 make docs
 

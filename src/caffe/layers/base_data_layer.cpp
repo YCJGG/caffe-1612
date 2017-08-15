@@ -36,13 +36,22 @@ template <typename Dtype>
 BasePrefetchingDataLayer<Dtype>::BasePrefetchingDataLayer(
     const LayerParameter& param)
     : BaseDataLayer<Dtype>(param),
+<<<<<<< HEAD
       prefetch_free_(), prefetch_full_() {
   for (int i = 0; i < PREFETCH_COUNT; ++i) {
     prefetch_free_.push(&prefetch_[i]);
+=======
+      prefetch_(param.data_param().prefetch()),
+      prefetch_free_(), prefetch_full_(), prefetch_current_() {
+  for (int i = 0; i < prefetch_.size(); ++i) {
+    prefetch_[i].reset(new Batch<Dtype>());
+    prefetch_free_.push(prefetch_[i].get());
+>>>>>>> caffe-bvlc-dev/master
   }
 }
 
 template <typename Dtype>
+<<<<<<< HEAD
 void BasePrefetchingDataLayer<Dtype>::CreatePrefetchThread() {
   this->phase_ = this->phase_;
   this->data_transformer_->InitRand();
@@ -58,22 +67,42 @@ template <typename Dtype>
 void BasePrefetchingDataLayer<Dtype>::LayerSetUp(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
   BaseDataLayer<Dtype>::LayerSetUp(bottom, top);
+=======
+void BasePrefetchingDataLayer<Dtype>::LayerSetUp(
+    const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
+  BaseDataLayer<Dtype>::LayerSetUp(bottom, top);
+
+>>>>>>> caffe-bvlc-dev/master
   // Before starting the prefetch thread, we make cpu_data and gpu_data
   // calls so that the prefetch thread does not accidentally make simultaneous
   // cudaMalloc calls when the main thread is running. In some GPUs this
   // seems to cause failures if we do not so.
+<<<<<<< HEAD
   for (int i = 0; i < PREFETCH_COUNT; ++i) {
     prefetch_[i].data_.mutable_cpu_data();
     if (this->output_labels_) {
       prefetch_[i].label_.mutable_cpu_data();
+=======
+  for (int i = 0; i < prefetch_.size(); ++i) {
+    prefetch_[i]->data_.mutable_cpu_data();
+    if (this->output_labels_) {
+      prefetch_[i]->label_.mutable_cpu_data();
+>>>>>>> caffe-bvlc-dev/master
     }
   }
 #ifndef CPU_ONLY
   if (Caffe::mode() == Caffe::GPU) {
+<<<<<<< HEAD
     for (int i = 0; i < PREFETCH_COUNT; ++i) {
       prefetch_[i].data_.mutable_gpu_data();
       if (this->output_labels_) {
         prefetch_[i].label_.mutable_gpu_data();
+=======
+    for (int i = 0; i < prefetch_.size(); ++i) {
+      prefetch_[i]->data_.mutable_gpu_data();
+      if (this->output_labels_) {
+        prefetch_[i]->label_.mutable_gpu_data();
+>>>>>>> caffe-bvlc-dev/master
       }
     }
   }
@@ -100,6 +129,12 @@ void BasePrefetchingDataLayer<Dtype>::InternalThreadEntry() {
 #ifndef CPU_ONLY
       if (Caffe::mode() == Caffe::GPU) {
         batch->data_.data().get()->async_gpu_push(stream);
+<<<<<<< HEAD
+=======
+        if (this->output_labels_) {
+          batch->label_.data().get()->async_gpu_push(stream);
+        }
+>>>>>>> caffe-bvlc-dev/master
         CUDA_CHECK(cudaStreamSynchronize(stream));
       }
 #endif
@@ -118,6 +153,7 @@ void BasePrefetchingDataLayer<Dtype>::InternalThreadEntry() {
 template <typename Dtype>
 void BasePrefetchingDataLayer<Dtype>::Forward_cpu(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
+<<<<<<< HEAD
   Batch<Dtype>* batch = prefetch_full_.pop("Data layer prefetch queue empty");
   // Reshape to loaded data.
   top[0]->ReshapeLike(batch->data_);
@@ -134,6 +170,20 @@ void BasePrefetchingDataLayer<Dtype>::Forward_cpu(
   }
 
   prefetch_free_.push(batch);
+=======
+  if (prefetch_current_) {
+    prefetch_free_.push(prefetch_current_);
+  }
+  prefetch_current_ = prefetch_full_.pop("Waiting for data");
+  // Reshape to loaded data.
+  top[0]->ReshapeLike(prefetch_current_->data_);
+  top[0]->set_cpu_data(prefetch_current_->data_.mutable_cpu_data());
+  if (this->output_labels_) {
+    // Reshape to loaded labels.
+    top[1]->ReshapeLike(prefetch_current_->label_);
+    top[1]->set_cpu_data(prefetch_current_->label_.mutable_cpu_data());
+  }
+>>>>>>> caffe-bvlc-dev/master
 }
 
 #ifdef CPU_ONLY

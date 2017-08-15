@@ -105,6 +105,35 @@ class DataLayerTest : public MultiDeviceTest<TypeParam> {
     }
   }
 
+<<<<<<< HEAD
+=======
+  void TestSkip() {
+    LayerParameter param;
+    param.set_phase(TRAIN);
+    DataParameter* data_param = param.mutable_data_param();
+    int batch_size = 5;
+    data_param->set_batch_size(batch_size);
+    data_param->set_source(filename_->c_str());
+    data_param->set_backend(backend_);
+    Caffe::set_solver_count(8);
+    for (int dev = 0; dev < Caffe::solver_count(); ++dev) {
+      Caffe::set_solver_rank(dev);
+      DataLayer<Dtype> layer(param);
+      layer.SetUp(blob_bottom_vec_, blob_top_vec_);
+      int label = dev;
+      for (int iter = 0; iter < 10; ++iter) {
+        layer.Forward(blob_bottom_vec_, blob_top_vec_);
+        for (int i = 0; i < batch_size; ++i) {
+          EXPECT_EQ(label % batch_size, blob_top_label_->cpu_data()[i]);
+          label += Caffe::solver_count();
+        }
+      }
+    }
+    Caffe::set_solver_count(1);
+    Caffe::set_solver_rank(0);
+  }
+
+>>>>>>> caffe-bvlc-dev/master
   void TestReshape(DataParameter_DB backend) {
     const int num_inputs = 5;
     // Save data of varying shapes.
@@ -356,6 +385,14 @@ TYPED_TEST(DataLayerTest, TestReadLevelDB) {
   this->TestRead();
 }
 
+<<<<<<< HEAD
+=======
+TYPED_TEST(DataLayerTest, TestSkipLevelDB) {
+  this->Fill(false, DataParameter_DB_LEVELDB);
+  this->TestSkip();
+}
+
+>>>>>>> caffe-bvlc-dev/master
 TYPED_TEST(DataLayerTest, TestReshapeLevelDB) {
   this->TestReshape(DataParameter_DB_LEVELDB);
 }
@@ -396,6 +433,14 @@ TYPED_TEST(DataLayerTest, TestReadLMDB) {
   this->TestRead();
 }
 
+<<<<<<< HEAD
+=======
+TYPED_TEST(DataLayerTest, TestSkipLMDB) {
+  this->Fill(false, DataParameter_DB_LMDB);
+  this->TestSkip();
+}
+
+>>>>>>> caffe-bvlc-dev/master
 TYPED_TEST(DataLayerTest, TestReshapeLMDB) {
   this->TestReshape(DataParameter_DB_LMDB);
 }

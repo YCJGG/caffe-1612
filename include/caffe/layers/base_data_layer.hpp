@@ -26,8 +26,11 @@ class BaseDataLayer : public Layer<Dtype> {
   // This method may not be overridden except by the BasePrefetchingDataLayer.
   virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
+<<<<<<< HEAD
   // Data layers should be shared by multiple solvers in parallel
   virtual inline bool ShareInParallel() const { return true; }
+=======
+>>>>>>> caffe-bvlc-dev/master
   virtual void DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {}
   // Data layers have no bottoms, so reshaping is trivial.
@@ -67,22 +70,32 @@ class BasePrefetchingDataLayer :
   virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
 
+<<<<<<< HEAD
   virtual void CreatePrefetchThread();
   virtual void JoinPrefetchThread();
 
   // Prefetches batches (asynchronously if to GPU memory)
   static const int PREFETCH_COUNT = 3;
 
+=======
+>>>>>>> caffe-bvlc-dev/master
  protected:
   virtual void InternalThreadEntry();
   virtual void load_batch(Batch<Dtype>* batch) = 0;
 
+<<<<<<< HEAD
   Batch<Dtype> prefetch_[PREFETCH_COUNT];
   BlockingQueue<Batch<Dtype>*> prefetch_free_;
   BlockingQueue<Batch<Dtype>*> prefetch_full_;
 
   Blob<Dtype> prefetch_data_;
   Blob<Dtype> prefetch_label_;
+=======
+  vector<shared_ptr<Batch<Dtype> > > prefetch_;
+  BlockingQueue<Batch<Dtype>*> prefetch_free_;
+  BlockingQueue<Batch<Dtype>*> prefetch_full_;
+  Batch<Dtype>* prefetch_current_;
+>>>>>>> caffe-bvlc-dev/master
 
   Blob<Dtype> transformed_data_;
 };

@@ -98,7 +98,11 @@ message NetParameter {
 // NOTE
 // Update the next available ID when you add a new SolverParameter field.
 //
+<<<<<<< HEAD
 // SolverParameter next available ID: 41 (last added: type)
+=======
+// SolverParameter next available ID: 42 (last added: layer_wise_reduce)
+>>>>>>> caffe-bvlc-dev/master
 message SolverParameter {
   //////////////////////////////////////////////////////////////////////////////
   // Specifying the train and test networks
@@ -128,8 +132,12 @@ message SolverParameter {
   // The states for the train/test nets. Must be unspecified or
   // specified once per net.
   //
+<<<<<<< HEAD
   // By default, all states will have solver = true;
   // train_state will have phase = TRAIN,
+=======
+  // By default, train_state will have phase = TRAIN,
+>>>>>>> caffe-bvlc-dev/master
   // and all test_state's will have phase = TEST.
   // Other defaults are set according to the NetState defaults.
   optional NetState train_state = 26;
@@ -239,6 +247,12 @@ message SolverParameter {
   }
   // DEPRECATED: use type instead of solver_type
   optional SolverType solver_type = 30 [default = SGD];
+<<<<<<< HEAD
+=======
+
+  // Overlap compute and communication for data parallel training
+  optional bool layer_wise_reduce = 41 [default = true];
+>>>>>>> caffe-bvlc-dev/master
 }
 
 // A message that stores the solver snapshots
@@ -306,7 +320,11 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
+<<<<<<< HEAD
 // LayerParameter next available layer-specific ID: 156 (last added: resize_param)
+=======
+// LayerParameter next available layer-specific ID: 147 (last added: recurrent_param)
+>>>>>>> caffe-bvlc-dev/master
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -403,6 +421,7 @@ message LayerParameter {
   optional ThresholdParameter threshold_param = 128;
   optional TileParameter tile_param = 138;
   optional WindowDataParameter window_data_param = 129;
+<<<<<<< HEAD
   optional SegAccuracyParameter seg_accuracy_param = 149;
   optional CenterLossParameter center_loss_param = 150;
   optional MultiStageMeanfieldParameter multi_stage_meanfield_param = 151;
@@ -507,6 +526,8 @@ message CenterLossParameter {
   optional bool is_hard_aware = 6 [default = false];
   optional float lambda = 7 [default = 0.005];
   optional float ld_margin = 8 [default = 0];
+=======
+>>>>>>> caffe-bvlc-dev/master
 }
 
 // Message that stores parameters used to apply transformation
@@ -604,11 +625,29 @@ message ConcatParameter {
 }
 
 message BatchNormParameter {
+<<<<<<< HEAD
   // If false, accumulate global mean/variance values via a moving average. If
   // true, use those accumulated values instead of computing mean/variance
   // across the batch.
   optional bool use_global_stats = 1;
   // How much does the moving average decay each iteration?
+=======
+  // If false, normalization is performed over the current mini-batch
+  // and global statistics are accumulated (but not yet used) by a moving
+  // average.
+  // If true, those accumulated mean and variance values are used for the
+  // normalization.
+  // By default, it is set to false when the network is in the training
+  // phase and true when the network is in the testing phase.
+  optional bool use_global_stats = 1;
+  // What fraction of the moving average remains each iteration?
+  // Smaller values make the moving average decay faster, giving more
+  // weight to the recent values.
+  // Each iteration updates the moving average @f$S_{t-1}@f$ with the
+  // current mean @f$ Y_t @f$ by
+  // @f$ S_t = (1-\beta)Y_t + \beta \cdot S_{t-1} @f$, where @f$ \beta @f$
+  // is the moving_average_fraction parameter.
+>>>>>>> caffe-bvlc-dev/master
   optional float moving_average_fraction = 2 [default = .999];
   // Small value to add to the variance estimate so that we don't divide by
   // zero.
@@ -759,8 +798,13 @@ message DataParameter {
   optional bool mirror = 6 [default = false];
   // Force the encoded image to have 3 color channels
   optional bool force_encoded_color = 9 [default = false];
+<<<<<<< HEAD
   // Prefetch queue (Number of batches to prefetch to host memory, increase if
   // data access bandwidth varies).
+=======
+  // Prefetch queue (Increase if data feeding bandwidth varies, within the
+  // limit of device memory for GPU training)
+>>>>>>> caffe-bvlc-dev/master
   optional uint32 prefetch = 10 [default = 4];
 }
 
@@ -902,6 +946,7 @@ message ImageDataParameter {
   // data.
   optional bool mirror = 6 [default = false];
   optional string root_folder = 12 [default = ""];
+<<<<<<< HEAD
 
   // image_seg_data_layer
   // This is the value set for pixels or images where we don't know the label
@@ -914,11 +959,17 @@ message ImageDataParameter {
   optional LabelType label_type = 16 [default = IMAGE];
   optional bool has_label = 13 [default = true];
   optional int32 max_labels = 14 [default = 1];
+=======
+>>>>>>> caffe-bvlc-dev/master
 }
 
 message InfogainLossParameter {
   // Specify the infogain matrix source.
   optional string source = 1;
+<<<<<<< HEAD
+=======
+  optional int32 axis = 2 [default = 1]; // axis of prob
+>>>>>>> caffe-bvlc-dev/master
 }
 
 message InnerProductParameter {
@@ -1041,9 +1092,13 @@ message PythonParameter {
   // string, dictionary in Python dict format, JSON, etc. You may parse this
   // string in `setup` method and use it in `forward` and `backward`.
   optional string param_str = 3 [default = ''];
+<<<<<<< HEAD
   // Whether this PythonLayer is shared among worker solvers during data parallelism.
   // If true, each worker solver sequentially run forward from this layer.
   // This value should be set true if you are using it as a data layer.
+=======
+  // DEPRECATED
+>>>>>>> caffe-bvlc-dev/master
   optional bool share_in_parallel = 4 [default = false];
 }
 
@@ -1337,7 +1392,10 @@ message V1LayerParameter {
     CONVOLUTION = 4;
     DATA = 5;
     DECONVOLUTION = 39;
+<<<<<<< HEAD
     DENSECRF = 40;
+=======
+>>>>>>> caffe-bvlc-dev/master
     DROPOUT = 6;
     DUMMY_DATA = 32;
     EUCLIDEAN_LOSS = 7;

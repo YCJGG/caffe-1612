@@ -695,7 +695,11 @@ TYPED_TEST(ConvolutionLayerTest, TestNDAgainst2D) {
   }
   ASSERT_EQ(backward_result_nd.count(), backward_result_2d.count());
   for (int i = 0; i < backward_result_2d.count(); ++i) {
+<<<<<<< HEAD
     EXPECT_EQ(backward_result_2d.cpu_diff()[i],
+=======
+    EXPECT_FLOAT_EQ(backward_result_2d.cpu_diff()[i],
+>>>>>>> caffe-bvlc-dev/master
               backward_result_nd.cpu_diff()[i]);
   }
   ASSERT_EQ(backward_weight_result_nd.count(),

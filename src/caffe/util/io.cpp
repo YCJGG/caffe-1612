@@ -71,6 +71,7 @@ void WriteProtoToBinaryFile(const Message& proto, const char* filename) {
 
 #ifdef USE_OPENCV
 cv::Mat ReadImageToCVMat(const string& filename,
+<<<<<<< HEAD
 			 const int height, const int width, const bool is_color,
 			 int* img_height, int* img_width) {
   cv::Mat cv_img;
@@ -99,6 +100,8 @@ cv::Mat ReadImageToCVMat(const string& filename,
 }
 
 cv::Mat ReadImageToCVMat(const string& filename,
+=======
+>>>>>>> caffe-bvlc-dev/master
     const int height, const int width, const bool is_color) {
   cv::Mat cv_img;
   int cv_read_flag = (is_color ? CV_LOAD_IMAGE_COLOR :

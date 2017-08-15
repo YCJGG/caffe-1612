@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 #include <boost/thread.hpp>
+=======
+>>>>>>> caffe-bvlc-dev/master
 #include "caffe/layer.hpp"
 
 namespace caffe {
 
+<<<<<<< HEAD
 template <typename Dtype>
 void Layer<Dtype>::InitMutex() {
   forward_mutex_.reset(new boost::mutex());
@@ -22,6 +26,8 @@ void Layer<Dtype>::Unlock() {
   }
 }
 
+=======
+>>>>>>> caffe-bvlc-dev/master
 INSTANTIATE_CLASS(Layer);
 
 }  // namespace caffe

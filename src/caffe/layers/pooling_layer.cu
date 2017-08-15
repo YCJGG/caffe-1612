@@ -138,7 +138,11 @@ __global__ void StoPoolForwardTest(const int nthreads,
     const int wstart = pw * stride_w;
     const int wend = min(wstart + kernel_w, width);
     // We set cumsum to be 0 to avoid divide-by-zero problems
+<<<<<<< HEAD
     Dtype cumsum = FLT_MIN;
+=======
+    Dtype cumsum = 0.;
+>>>>>>> caffe-bvlc-dev/master
     Dtype cumvalues = 0.;
     const Dtype* const bottom_slice =
         bottom_data + (n * channels + c) * height * width;
@@ -149,7 +153,11 @@ __global__ void StoPoolForwardTest(const int nthreads,
         cumvalues += bottom_slice[h * width + w] * bottom_slice[h * width + w];
       }
     }
+<<<<<<< HEAD
     top_data[index] = cumvalues / cumsum;
+=======
+    top_data[index] = (cumsum > 0.) ? cumvalues / cumsum : 0.;
+>>>>>>> caffe-bvlc-dev/master
   }
 }
 

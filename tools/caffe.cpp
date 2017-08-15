@@ -195,6 +195,10 @@ int train() {
   // If the gpus flag is not provided, allow the mode and device to be set
   // in the solver prototxt.
   if (FLAGS_gpu.size() == 0
+<<<<<<< HEAD
+=======
+      && solver_param.has_solver_mode()
+>>>>>>> caffe-bvlc-dev/master
       && solver_param.solver_mode() == caffe::SolverParameter_SolverMode_GPU) {
       if (solver_param.has_device_id()) {
           FLAGS_gpu = "" +
@@ -244,11 +248,23 @@ int train() {
     CopyLayers(solver.get(), FLAGS_weights);
   }
 
+<<<<<<< HEAD
   if (gpus.size() > 1) {
     caffe::P2PSync<float> sync(solver, NULL, solver->param());
     sync.Run(gpus);
   } else {
     LOG(INFO) << "Starting Optimization";
+=======
+  LOG(INFO) << "Starting Optimization";
+  if (gpus.size() > 1) {
+#ifdef USE_NCCL
+    caffe::NCCL<float> nccl(solver);
+    nccl.Run(gpus, FLAGS_snapshot.size() > 0 ? FLAGS_snapshot.c_str() : NULL);
+#else
+    LOG(FATAL) << "Multi-GPU execution not available - rebuild with USE_NCCL";
+#endif
+  } else {
+>>>>>>> caffe-bvlc-dev/master
     solver->Solve();
   }
   LOG(INFO) << "Optimization Done.";

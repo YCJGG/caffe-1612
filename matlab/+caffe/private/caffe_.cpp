@@ -197,6 +197,20 @@ static void get_solver(MEX_ARGS) {
   mxFree(solver_file);
 }
 
+<<<<<<< HEAD
+=======
+// Usage: caffe_('delete_solver', hSolver)
+static void delete_solver(MEX_ARGS) {
+  mxCHECK(nrhs == 1 && mxIsStruct(prhs[0]),
+      "Usage: caffe_('delete_solver', hSolver)");
+  Solver<float>* solver = handle_to_ptr<Solver<float> >(prhs[0]);
+  solvers_.erase(std::remove_if(solvers_.begin(), solvers_.end(),
+      [solver] (const shared_ptr< Solver<float> > &solverPtr) {
+      return solverPtr.get() == solver;
+  }), solvers_.end());
+}
+
+>>>>>>> caffe-bvlc-dev/master
 // Usage: caffe_('solver_get_attr', hSolver)
 static void solver_get_attr(MEX_ARGS) {
   mxCHECK(nrhs == 1 && mxIsStruct(prhs[0]),
@@ -271,6 +285,20 @@ static void get_net(MEX_ARGS) {
   mxFree(phase_name);
 }
 
+<<<<<<< HEAD
+=======
+// Usage: caffe_('delete_solver', hSolver)
+static void delete_net(MEX_ARGS) {
+  mxCHECK(nrhs == 1 && mxIsStruct(prhs[0]),
+      "Usage: caffe_('delete_solver', hNet)");
+  Net<float>* net = handle_to_ptr<Net<float> >(prhs[0]);
+  nets_.erase(std::remove_if(nets_.begin(), nets_.end(),
+      [net] (const shared_ptr< Net<float> > &netPtr) {
+      return netPtr.get() == net;
+  }), nets_.end());
+}
+
+>>>>>>> caffe-bvlc-dev/master
 // Usage: caffe_('net_get_attr', hNet)
 static void net_get_attr(MEX_ARGS) {
   mxCHECK(nrhs == 1 && mxIsStruct(prhs[0]),
@@ -522,12 +550,20 @@ struct handler_registry {
 static handler_registry handlers[] = {
   // Public API functions
   { "get_solver",         get_solver      },
+<<<<<<< HEAD
+=======
+  { "delete_solver",      delete_solver   },
+>>>>>>> caffe-bvlc-dev/master
   { "solver_get_attr",    solver_get_attr },
   { "solver_get_iter",    solver_get_iter },
   { "solver_restore",     solver_restore  },
   { "solver_solve",       solver_solve    },
   { "solver_step",        solver_step     },
   { "get_net",            get_net         },
+<<<<<<< HEAD
+=======
+  { "delete_net",         delete_net      },
+>>>>>>> caffe-bvlc-dev/master
   { "net_get_attr",       net_get_attr    },
   { "net_forward",        net_forward     },
   { "net_backward",       net_backward    },

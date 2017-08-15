@@ -17,6 +17,7 @@
 #include "caffe/util/math_functions.hpp"
 #include "caffe/util/upgrade_proto.hpp"
 
+<<<<<<< HEAD
 #include "caffe/test/test_caffe_main.hpp"
 
 namespace caffe {
@@ -24,14 +25,24 @@ namespace caffe {
 template <typename Dtype>
 Net<Dtype>::Net(const NetParameter& param, const Net* root_net)
     : root_net_(root_net) {
+=======
+namespace caffe {
+
+template <typename Dtype>
+Net<Dtype>::Net(const NetParameter& param) {
+>>>>>>> caffe-bvlc-dev/master
   Init(param);
 }
 
 template <typename Dtype>
 Net<Dtype>::Net(const string& param_file, Phase phase,
+<<<<<<< HEAD
     const int level, const vector<string>* stages,
     const Net* root_net)
     : root_net_(root_net) {
+=======
+    const int level, const vector<string>* stages) {
+>>>>>>> caffe-bvlc-dev/master
   NetParameter param;
   ReadNetParamsFromTextFileOrDie(param_file, &param);
   // Set phase, stages and level
@@ -47,8 +58,11 @@ Net<Dtype>::Net(const string& param_file, Phase phase,
 
 template <typename Dtype>
 void Net<Dtype>::Init(const NetParameter& in_param) {
+<<<<<<< HEAD
   CHECK(Caffe::root_solver() || root_net_)
       << "root_net_ needs to be set for all non-root solvers";
+=======
+>>>>>>> caffe-bvlc-dev/master
   // Set phase from the state.
   phase_ = in_param.state().phase();
   // Filter layers based on their include/exclude rules and
@@ -74,9 +88,12 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
   top_id_vecs_.resize(param.layer_size());
   bottom_need_backward_.resize(param.layer_size());
   for (int layer_id = 0; layer_id < param.layer_size(); ++layer_id) {
+<<<<<<< HEAD
     // For non-root solvers, whether this layer is shared from root_net_.
     bool share_from_root = !Caffe::root_solver()
         && root_net_->layers_[layer_id]->ShareInParallel();
+=======
+>>>>>>> caffe-bvlc-dev/master
     // Inherit phase from net if unset.
     if (!param.layer(layer_id).has_phase()) {
       param.mutable_layer(layer_id)->set_phase(phase_);
@@ -89,6 +106,7 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
           << "propagate_down param must be specified "
           << "either 0 or bottom_size times ";
     }
+<<<<<<< HEAD
     if (share_from_root) {
       LOG(INFO) << "Sharing layer " << layer_param.name() << " from root net";
       layers_.push_back(root_net_->layers_[layer_id]);
@@ -96,6 +114,9 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
     } else {
       layers_.push_back(LayerRegistry<Dtype>::CreateLayer(layer_param));
     }
+=======
+    layers_.push_back(LayerRegistry<Dtype>::CreateLayer(layer_param));
+>>>>>>> caffe-bvlc-dev/master
     layer_names_.push_back(layer_param.name());
     LOG_IF(INFO, Caffe::root_solver())
         << "Creating Layer " << layer_param.name();
@@ -134,6 +155,7 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
       }
     }
     // After this layer is connected, set it up.
+<<<<<<< HEAD
     if (share_from_root) {
       // Set up size of top blobs using root_net_
       const vector<Blob<Dtype>*>& base_top = root_net_->top_vecs_[layer_id];
@@ -147,6 +169,9 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
     } else {
       layers_[layer_id]->SetUp(bottom_vecs_[layer_id], top_vecs_[layer_id]);
     }
+=======
+    layers_[layer_id]->SetUp(bottom_vecs_[layer_id], top_vecs_[layer_id]);
+>>>>>>> caffe-bvlc-dev/master
     LOG_IF(INFO, Caffe::root_solver())
         << "Setting up " << layer_names_[layer_id];
     for (int top_id = 0; top_id < top_vecs_[layer_id].size(); ++top_id) {
@@ -546,10 +571,22 @@ Dtype Net<Dtype>::ForwardFromTo(int start, int end) {
   CHECK_LT(end, layers_.size());
   Dtype loss = 0;
   for (int i = start; i <= end; ++i) {
+<<<<<<< HEAD
     // LOG(ERROR) << "Forwarding " << layer_names_[i];
     Dtype layer_loss = layers_[i]->Forward(bottom_vecs_[i], top_vecs_[i]);
     loss += layer_loss;
     if (debug_info_) { ForwardDebugInfo(i); }
+=======
+    for (int c = 0; c < before_forward_.size(); ++c) {
+      before_forward_[c]->run(i);
+    }
+    Dtype layer_loss = layers_[i]->Forward(bottom_vecs_[i], top_vecs_[i]);
+    loss += layer_loss;
+    if (debug_info_) { ForwardDebugInfo(i); }
+    for (int c = 0; c < after_forward_.size(); ++c) {
+      after_forward_[c]->run(i);
+    }
+>>>>>>> caffe-bvlc-dev/master
   }
   return loss;
 }
@@ -591,11 +628,23 @@ void Net<Dtype>::BackwardFromTo(int start, int end) {
   CHECK_GE(end, 0);
   CHECK_LT(start, layers_.size());
   for (int i = start; i >= end; --i) {
+<<<<<<< HEAD
+=======
+    for (int c = 0; c < before_backward_.size(); ++c) {
+      before_backward_[c]->run(i);
+    }
+>>>>>>> caffe-bvlc-dev/master
     if (layer_need_backward_[i]) {
       layers_[i]->Backward(
           top_vecs_[i], bottom_need_backward_[i], bottom_vecs_[i]);
       if (debug_info_) { BackwardDebugInfo(i); }
     }
+<<<<<<< HEAD
+=======
+    for (int c = 0; c < after_backward_.size(); ++c) {
+      after_backward_[c]->run(i);
+    }
+>>>>>>> caffe-bvlc-dev/master
   }
 }
 
@@ -786,8 +835,12 @@ void Net<Dtype>::CopyTrainedLayersFrom(const NetParameter& param) {
 
 template <typename Dtype>
 void Net<Dtype>::CopyTrainedLayersFrom(const string trained_filename) {
+<<<<<<< HEAD
   if (trained_filename.size() >= 3 &&
       trained_filename.compare(trained_filename.size() - 3, 3, ".h5") == 0) {
+=======
+  if (H5Fis_hdf5(trained_filename.c_str())) {
+>>>>>>> caffe-bvlc-dev/master
     CopyTrainedLayersFromHDF5(trained_filename);
   } else {
     CopyTrainedLayersFromBinaryProto(trained_filename);

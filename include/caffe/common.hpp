@@ -158,11 +158,22 @@ class Caffe {
   // Search from start_id to the highest possible device ordinal,
   // return the ordinal of the first available device.
   static int FindDevice(const int start_id = 0);
+<<<<<<< HEAD
   // Parallel training info
   inline static int solver_count() { return Get().solver_count_; }
   inline static void set_solver_count(int val) { Get().solver_count_ = val; }
   inline static bool root_solver() { return Get().root_solver_; }
   inline static void set_root_solver(bool val) { Get().root_solver_ = val; }
+=======
+  // Parallel training
+  inline static int solver_count() { return Get().solver_count_; }
+  inline static void set_solver_count(int val) { Get().solver_count_ = val; }
+  inline static int solver_rank() { return Get().solver_rank_; }
+  inline static void set_solver_rank(int val) { Get().solver_rank_ = val; }
+  inline static bool multiprocess() { return Get().multiprocess_; }
+  inline static void set_multiprocess(bool val) { Get().multiprocess_ = val; }
+  inline static bool root_solver() { return Get().solver_rank_ == 0; }
+>>>>>>> caffe-bvlc-dev/master
 
  protected:
 #ifndef CPU_ONLY
@@ -172,8 +183,16 @@ class Caffe {
   shared_ptr<RNG> random_generator_;
 
   Brew mode_;
+<<<<<<< HEAD
   int solver_count_;
   bool root_solver_;
+=======
+
+  // Parallel training
+  int solver_count_;
+  int solver_rank_;
+  bool multiprocess_;
+>>>>>>> caffe-bvlc-dev/master
 
  private:
   // The private constructor to avoid duplicate instantiation.

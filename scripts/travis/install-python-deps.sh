@@ -11,4 +11,8 @@ if ! $WITH_PYTHON3 ; then
 else
   # Python3
   pip install --pre protobuf==3.0.0b3
+<<<<<<< HEAD
+=======
+  pip install pydot
+>>>>>>> caffe-bvlc-dev/master
 fi
