@@ -13,7 +13,7 @@ namespace caffe {
 
 template <typename Dtype>
 DataLayer<Dtype>::DataLayer(const LayerParameter& param)
-  : BasePrefetchingDataLayer<Dtype>(param) {
+  : BasePrefetchingDataLayer<Dtype>(param),
     offset_() {
   db_.reset(db::GetDB(param.data_param().backend()));
   db_->Open(param.data_param().source(), db::READ);
