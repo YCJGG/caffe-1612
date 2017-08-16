@@ -15,11 +15,7 @@ int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   caffe::GlobalInit(&argc, &argv);
 #ifndef CPU_ONLY
-<<<<<<< HEAD
-  // Before starting testing, let's first print out a few cuda defice info.
-=======
   // Before starting testing, let's first print out a few cuda device info.
->>>>>>> caffe-bvlc-dev/master
   int device;
   cudaGetDeviceCount(&device);
   cout << "Cuda number of devices: " << device << endl;

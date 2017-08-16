@@ -51,8 +51,6 @@ const int NPY_DTYPE = NPY_FLOAT32;
 void set_mode_cpu() { Caffe::set_mode(Caffe::CPU); }
 void set_mode_gpu() { Caffe::set_mode(Caffe::GPU); }
 
-<<<<<<< HEAD
-=======
 void InitLog() {
   ::google::InitGoogleLogging("");
   ::google::InstallFailureSignalHandler();
@@ -70,7 +68,6 @@ void Log(const string& s) {
   LOG(INFO) << s;
 }
 
->>>>>>> caffe-bvlc-dev/master
 void set_random_seed(unsigned int seed) { Caffe::set_random_seed(seed); }
 
 // For convenience, check that input files can be opened, and raise an
@@ -274,20 +271,12 @@ bp::object BlobVec_add_blob(bp::tuple args, bp::dict kwargs) {
 }
 
 template<typename Dtype>
-<<<<<<< HEAD
-class PythonCallback: public Solver<Dtype>::Callback {
-=======
 class SolverCallback: public Solver<Dtype>::Callback {
->>>>>>> caffe-bvlc-dev/master
  protected:
   bp::object on_start_, on_gradients_ready_;
 
  public:
-<<<<<<< HEAD
-  PythonCallback(bp::object on_start, bp::object on_gradients_ready)
-=======
   SolverCallback(bp::object on_start, bp::object on_gradients_ready)
->>>>>>> caffe-bvlc-dev/master
     : on_start_(on_start), on_gradients_ready_(on_gradients_ready) { }
   virtual void on_gradients_ready() {
     on_gradients_ready_();
@@ -299,11 +288,6 @@ class SolverCallback: public Solver<Dtype>::Callback {
 template<typename Dtype>
 void Solver_add_callback(Solver<Dtype> * solver, bp::object on_start,
   bp::object on_gradients_ready) {
-<<<<<<< HEAD
-  solver->add_callback(new PythonCallback<Dtype>(on_start, on_gradients_ready));
-}
-
-=======
   solver->add_callback(new SolverCallback<Dtype>(on_start, on_gradients_ready));
 }
 
@@ -392,7 +376,6 @@ bp::object NCCL_New_Uid() {
 }
 #endif
 
->>>>>>> caffe-bvlc-dev/master
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SolveOverloads, Solve, 0, 1);
 
 BOOST_PYTHON_MODULE(_caffe) {
@@ -402,26 +385,20 @@ BOOST_PYTHON_MODULE(_caffe) {
   bp::scope().attr("__version__") = AS_STRING(CAFFE_VERSION);
 
   // Caffe utility functions
-<<<<<<< HEAD
-=======
   bp::def("init_log", &InitLog);
   bp::def("init_log", &InitLogLevel);
   bp::def("init_log", &InitLogLevelPipe);
   bp::def("log", &Log);
   bp::def("has_nccl", &HasNCCL);
->>>>>>> caffe-bvlc-dev/master
   bp::def("set_mode_cpu", &set_mode_cpu);
   bp::def("set_mode_gpu", &set_mode_gpu);
   bp::def("set_random_seed", &set_random_seed);
   bp::def("set_device", &Caffe::SetDevice);
-<<<<<<< HEAD
-=======
   bp::def("solver_count", &Caffe::solver_count);
   bp::def("set_solver_count", &Caffe::set_solver_count);
   bp::def("solver_rank", &Caffe::solver_rank);
   bp::def("set_solver_rank", &Caffe::set_solver_rank);
   bp::def("set_multiprocess", &Caffe::set_multiprocess);
->>>>>>> caffe-bvlc-dev/master
 
   bp::def("layer_type_list", &LayerRegistry<Dtype>::LayerTypeList);
 
@@ -465,16 +442,12 @@ BOOST_PYTHON_MODULE(_caffe) {
         bp::with_custodian_and_ward<1, 2, bp::with_custodian_and_ward<1, 3> >())
     .def("save", &Net_Save)
     .def("save_hdf5", &Net_SaveHDF5)
-<<<<<<< HEAD
-    .def("load_hdf5", &Net_LoadHDF5);
-=======
     .def("load_hdf5", &Net_LoadHDF5)
     .def("before_forward", &Net_before_forward)
     .def("after_forward", &Net_after_forward)
     .def("before_backward", &Net_before_backward)
     .def("after_backward", &Net_after_backward)
     .def("after_backward", &Net_add_nccl);
->>>>>>> caffe-bvlc-dev/master
   BP_REGISTER_SHARED_PTR_TO_PYTHON(Net<Dtype>);
 
   bp::class_<Blob<Dtype>, shared_ptr<Blob<Dtype> >, boost::noncopyable>(
@@ -506,13 +479,10 @@ BOOST_PYTHON_MODULE(_caffe) {
     .add_property("type", bp::make_function(&Layer<Dtype>::type));
   BP_REGISTER_SHARED_PTR_TO_PYTHON(Layer<Dtype>);
 
-<<<<<<< HEAD
-=======
   bp::class_<SolverParameter>("SolverParameter", bp::no_init)
     .add_property("max_iter", &SolverParameter::max_iter)
     .add_property("display", &SolverParameter::display)
     .add_property("layer_wise_reduce", &SolverParameter::layer_wise_reduce);
->>>>>>> caffe-bvlc-dev/master
   bp::class_<LayerParameter>("LayerParameter", bp::no_init);
 
   bp::class_<Solver<Dtype>, shared_ptr<Solver<Dtype> >, boost::noncopyable>(
@@ -522,22 +492,15 @@ BOOST_PYTHON_MODULE(_caffe) {
           bp::return_internal_reference<>()))
     .add_property("iter", &Solver<Dtype>::iter)
     .def("add_callback", &Solver_add_callback<Dtype>)
-<<<<<<< HEAD
-=======
     .def("add_callback", &Solver_add_nccl)
->>>>>>> caffe-bvlc-dev/master
     .def("solve", static_cast<void (Solver<Dtype>::*)(const char*)>(
           &Solver<Dtype>::Solve), SolveOverloads())
     .def("step", &Solver<Dtype>::Step)
     .def("restore", &Solver<Dtype>::Restore)
-<<<<<<< HEAD
-    .def("snapshot", &Solver<Dtype>::Snapshot);
-=======
     .def("snapshot", &Solver<Dtype>::Snapshot)
     .def("share_weights", &share_weights)
     .add_property("param", bp::make_function(&Solver<Dtype>::param,
               bp::return_value_policy<bp::copy_const_reference>()));
->>>>>>> caffe-bvlc-dev/master
   BP_REGISTER_SHARED_PTR_TO_PYTHON(Solver<Dtype>);
 
   bp::class_<SGDSolver<Dtype>, bp::bases<Solver<Dtype> >,
@@ -581,8 +544,6 @@ BOOST_PYTHON_MODULE(_caffe) {
   bp::class_<vector<bool> >("BoolVec")
     .def(bp::vector_indexing_suite<vector<bool> >());
 
-<<<<<<< HEAD
-=======
   bp::class_<NCCL<Dtype>, shared_ptr<NCCL<Dtype> >,
     boost::noncopyable>("NCCL",
                         bp::init<shared_ptr<Solver<Dtype> >, const string&>())
@@ -601,7 +562,6 @@ BOOST_PYTHON_MODULE(_caffe) {
     .add_property("ms", &Timer::MilliSeconds);
   BP_REGISTER_SHARED_PTR_TO_PYTHON(Timer);
 
->>>>>>> caffe-bvlc-dev/master
   // boost python expects a void (missing) return value, while import_array
   // returns NULL for python3. import_array1() forces a void return value.
   import_array1();

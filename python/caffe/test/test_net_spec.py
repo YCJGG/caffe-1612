@@ -79,8 +79,6 @@ class TestNetSpec(unittest.TestCase):
         net_proto = silent_net()
         net = self.load_net(net_proto)
         self.assertEqual(len(net.forward()), 0)
-<<<<<<< HEAD
-=======
 
     def test_type_error(self):
         """Test that a TypeError is raised when a Function input isn't a Top."""
@@ -89,4 +87,3 @@ class TestNetSpec(unittest.TestCase):
         with self.assertRaisesRegexp(TypeError, r):
             L.Silence(data, ntop=0)  # should raise: data is a tuple, not a Top
         L.Silence(*data, ntop=0)  # shouldn't raise: each elt of data is a Top
->>>>>>> caffe-bvlc-dev/master

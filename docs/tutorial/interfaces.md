@@ -91,11 +91,7 @@ In MatCaffe, you can
 * Run for a certain number of iterations and give back control to Matlab
 * Intermingle arbitrary Matlab code with gradient steps
 
-<<<<<<< HEAD
-An ILSVRC image classification demo is in caffe/matlab/demo/classification_demo.m (you need to download BVLC CaffeNet from [Model Zoo](http://caffe.berkeleyvision.org/model_zoo.html) to run it).
-=======
 An ILSVRC image classification demo is in caffe/matlab/demo/classification_demo.m (you need to download BAIR CaffeNet from [Model Zoo](http://caffe.berkeleyvision.org/model_zoo.html) to run it).
->>>>>>> caffe-bvlc-dev/master
 
 ### Build MatCaffe
 
@@ -118,11 +114,7 @@ You can save your Matlab search PATH by running `savepath` so that you don't hav
 
 MatCaffe is very similar to PyCaffe in usage.
 
-<<<<<<< HEAD
-Examples below shows detailed usages and assumes you have downloaded BVLC CaffeNet from [Model Zoo](http://caffe.berkeleyvision.org/model_zoo.html) and started `matlab` from caffe root folder.
-=======
 Examples below shows detailed usages and assumes you have downloaded BAIR CaffeNet from [Model Zoo](http://caffe.berkeleyvision.org/model_zoo.html) and started `matlab` from caffe root folder.
->>>>>>> caffe-bvlc-dev/master
 
     model = './models/bvlc_reference_caffenet/deploy.prototxt';
     weights = './models/bvlc_reference_caffenet/bvlc_reference_caffenet.caffemodel';

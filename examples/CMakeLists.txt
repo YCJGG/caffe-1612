@@ -19,20 +19,12 @@ foreach(source_file ${examples_srcs})
   caffe_set_solution_folder(${name} examples)
 
   # install
-<<<<<<< HEAD
-  install(TARGETS ${name} DESTINATION bin)
-
-  if(UNIX OR APPLE)
-    # Funny command to make tutorials work
-    # TODO: remove in future as soon as naming is standartaized everywhere
-=======
   install(TARGETS ${name} DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 
   if(UNIX OR APPLE)
     # Funny command to make tutorials work
     # TODO: remove in future as soon as naming is standardized everywhere
->>>>>>> caffe-bvlc-dev/master
     set(__outname ${PROJECT_BINARY_DIR}/examples/${folder}/${name}${Caffe_POSTFIX})
     add_custom_command(TARGET ${name} POST_BUILD
                        COMMAND ln -sf "${__outname}" "${__outname}.bin")

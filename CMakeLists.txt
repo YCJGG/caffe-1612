@@ -10,23 +10,15 @@ endif()
 project(Caffe C CXX)
 
 # ---[ Caffe version
-<<<<<<< HEAD
-set(CAFFE_TARGET_VERSION "1.0.0-rc3" CACHE STRING "Caffe logical version")
-set(CAFFE_TARGET_SOVERSION "1.0.0-rc3" CACHE STRING "Caffe soname version")
-=======
 set(CAFFE_TARGET_VERSION "1.0.0" CACHE STRING "Caffe logical version")
 set(CAFFE_TARGET_SOVERSION "1.0.0" CACHE STRING "Caffe soname version")
->>>>>>> caffe-bvlc-dev/master
 add_definitions(-DCAFFE_VERSION=${CAFFE_TARGET_VERSION})
 
 # ---[ Using cmake scripts and modules
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 
 include(ExternalProject)
-<<<<<<< HEAD
-=======
 include(GNUInstallDirs)
->>>>>>> caffe-bvlc-dev/master
 
 include(cmake/Utils.cmake)
 include(cmake/Targets.cmake)
@@ -37,10 +29,7 @@ include(cmake/ConfigGen.cmake)
 # ---[ Options
 caffe_option(CPU_ONLY  "Build Caffe without CUDA support" OFF) # TODO: rename to USE_CUDA
 caffe_option(USE_CUDNN "Build Caffe with cuDNN library support" ON IF NOT CPU_ONLY)
-<<<<<<< HEAD
-=======
 caffe_option(USE_NCCL "Build Caffe with NCCL library support" OFF)
->>>>>>> caffe-bvlc-dev/master
 caffe_option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 caffe_option(BUILD_python "Build Python wrapper" ON)
 set(python_version "2" CACHE STRING "Specify which Python version to use")
@@ -51,10 +40,7 @@ caffe_option(USE_OPENCV "Build with OpenCV support" ON)
 caffe_option(USE_LEVELDB "Build with levelDB" ON)
 caffe_option(USE_LMDB "Build with lmdb" ON)
 caffe_option(ALLOW_LMDB_NOLOCK "Allow MDB_NOLOCK when reading LMDB files (only if necessary)" OFF)
-<<<<<<< HEAD
-=======
 caffe_option(USE_OPENMP "Link with OpenMP (when your BLAS wants OpenMP and you get linker errors)" OFF)
->>>>>>> caffe-bvlc-dev/master
 
 # ---[ Dependencies
 include(cmake/Dependencies.cmake)
@@ -71,11 +57,6 @@ if(USE_libstdcpp)
   message("-- Warning: forcing libstdc++ (controlled by USE_libstdcpp option in cmake)")
 endif()
 
-<<<<<<< HEAD
-add_definitions(-DGTEST_USE_OWN_TR1_TUPLE)
-
-=======
->>>>>>> caffe-bvlc-dev/master
 # ---[ Warnings
 caffe_warnings_disable(CMAKE_CXX_FLAGS -Wno-sign-compare -Wno-uninitialized)
 
@@ -84,10 +65,6 @@ configure_file(cmake/Templates/caffe_config.h.in "${PROJECT_BINARY_DIR}/caffe_co
 
 # ---[ Includes
 set(Caffe_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
-<<<<<<< HEAD
-include_directories(${Caffe_INCLUDE_DIR} ${PROJECT_BINARY_DIR})
-include_directories(BEFORE src) # This is needed for gtest.
-=======
 set(Caffe_SRC_DIR ${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_BINARY_DIR})
 
@@ -108,7 +85,6 @@ if(HAVE_CUDA)
   list(REMOVE_ITEM Caffe_ALL_DEFINITIONS PRIVATE PUBLIC)
   list(APPEND CUDA_NVCC_FLAGS ${Caffe_ALL_DEFINITIONS})
 endif()
->>>>>>> caffe-bvlc-dev/master
 
 # ---[ Subdirectories
 add_subdirectory(src/gtest)
@@ -128,8 +104,6 @@ if(BUILD_python)
   add_dependencies(pytest pycaffe)
 endif()
 
-<<<<<<< HEAD
-=======
 # ---[ uninstall target
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Uninstall.cmake.in
@@ -140,13 +114,8 @@ add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/Uninstall.cmake)
 
->>>>>>> caffe-bvlc-dev/master
 # ---[ Configuration summary
 caffe_print_configuration_summary()
 
 # ---[ Export configs generation
 caffe_generate_export_configs()
-<<<<<<< HEAD
-=======
-
->>>>>>> caffe-bvlc-dev/master

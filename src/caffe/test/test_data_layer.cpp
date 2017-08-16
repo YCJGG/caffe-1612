@@ -105,8 +105,6 @@ class DataLayerTest : public MultiDeviceTest<TypeParam> {
     }
   }
 
-<<<<<<< HEAD
-=======
   void TestSkip() {
     LayerParameter param;
     param.set_phase(TRAIN);
@@ -133,7 +131,6 @@ class DataLayerTest : public MultiDeviceTest<TypeParam> {
     Caffe::set_solver_rank(0);
   }
 
->>>>>>> caffe-bvlc-dev/master
   void TestReshape(DataParameter_DB backend) {
     const int num_inputs = 5;
     // Save data of varying shapes.
@@ -385,14 +382,11 @@ TYPED_TEST(DataLayerTest, TestReadLevelDB) {
   this->TestRead();
 }
 
-<<<<<<< HEAD
-=======
 TYPED_TEST(DataLayerTest, TestSkipLevelDB) {
   this->Fill(false, DataParameter_DB_LEVELDB);
   this->TestSkip();
 }
 
->>>>>>> caffe-bvlc-dev/master
 TYPED_TEST(DataLayerTest, TestReshapeLevelDB) {
   this->TestReshape(DataParameter_DB_LEVELDB);
 }
@@ -433,14 +427,11 @@ TYPED_TEST(DataLayerTest, TestReadLMDB) {
   this->TestRead();
 }
 
-<<<<<<< HEAD
-=======
 TYPED_TEST(DataLayerTest, TestSkipLMDB) {
   this->Fill(false, DataParameter_DB_LMDB);
   this->TestSkip();
 }
 
->>>>>>> caffe-bvlc-dev/master
 TYPED_TEST(DataLayerTest, TestReshapeLMDB) {
   this->TestReshape(DataParameter_DB_LMDB);
 }

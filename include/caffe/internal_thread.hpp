@@ -38,23 +38,16 @@ class InternalThread {
       with the code you want your thread to run. */
   virtual void InternalThreadEntry() {}
 
-<<<<<<< HEAD
+  // for image_seg_data layer
   /** Will not return until the internal thread has exited. */
   bool WaitForInternalThreadToExit();
 
-=======
->>>>>>> caffe-bvlc-dev/master
   /* Should be tested when running loops to exit when requested. */
   bool must_stop();
 
  private:
-<<<<<<< HEAD
-  void entry(int device, Caffe::Brew mode, int rand_seed, int solver_count,
-      bool root_solver);
-=======
   void entry(int device, Caffe::Brew mode, int rand_seed,
       int solver_count, int solver_rank, bool multiprocess);
->>>>>>> caffe-bvlc-dev/master
 
   shared_ptr<boost::thread> thread_;
 };

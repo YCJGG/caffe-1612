@@ -38,11 +38,7 @@ class Layer {
    * layer.
    */
   explicit Layer(const LayerParameter& param)
-<<<<<<< HEAD
-    : layer_param_(param), is_shared_(false) {
-=======
     : layer_param_(param) {
->>>>>>> caffe-bvlc-dev/master
       // Set phase and copy blobs (if there are any).
       phase_ = param.phase();
       if (layer_param_.blobs_size() > 0) {
@@ -70,10 +66,6 @@ class Layer {
    */
   void SetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
-<<<<<<< HEAD
-    InitMutex();
-=======
->>>>>>> caffe-bvlc-dev/master
     CheckBlobCounts(bottom, top);
     LayerSetUp(bottom, top);
     Reshape(bottom, top);
@@ -100,33 +92,6 @@ class Layer {
       const vector<Blob<Dtype>*>& top) {}
 
   /**
-<<<<<<< HEAD
-   * @brief Whether a layer should be shared by multiple nets during data
-   *        parallelism. By default, all layers except for data layers should
-   *        not be shared. data layers should be shared to ensure each worker
-   *        solver access data sequentially during data parallelism.
-   */
-  virtual inline bool ShareInParallel() const { return false; }
-
-  /** @brief Return whether this layer is actually shared by other nets.
-   *         If ShareInParallel() is true and using more than one GPU and the
-   *         net has TRAIN phase, then this function is expected return true.
-   */
-  inline bool IsShared() const { return is_shared_; }
-
-  /** @brief Set whether this layer is actually shared by other nets
-   *         If ShareInParallel() is true and using more than one GPU and the
-   *         net has TRAIN phase, then is_shared should be set true.
-   */
-  inline void SetShared(bool is_shared) {
-    CHECK(ShareInParallel() || !is_shared)
-        << type() << "Layer does not support sharing.";
-    is_shared_ = is_shared;
-  }
-
-  /**
-=======
->>>>>>> caffe-bvlc-dev/master
    * @brief Adjust the shapes of top blobs and internal buffers to accommodate
    *        the shapes of the bottom blobs.
    *
@@ -424,15 +389,9 @@ class Layer {
   inline void SetLossWeights(const vector<Blob<Dtype>*>& top) {
     const int num_loss_weights = layer_param_.loss_weight_size();
     if (num_loss_weights) {
-<<<<<<< HEAD
-      CHECK_GE(top.size(), num_loss_weights) << "loss_weight must be "
-          "unspecified or specified once per top blob.";
-      for (int top_id = 0; top_id < num_loss_weights; ++top_id) {
-=======
       CHECK_EQ(top.size(), num_loss_weights) << "loss_weight must be "
           "unspecified or specified once per top blob.";
       for (int top_id = 0; top_id < top.size(); ++top_id) {
->>>>>>> caffe-bvlc-dev/master
         const Dtype loss_weight = layer_param_.loss_weight(top_id);
         if (loss_weight == Dtype(0)) { continue; }
         this->set_loss(top_id, loss_weight);
@@ -444,22 +403,6 @@ class Layer {
   }
 
  private:
-<<<<<<< HEAD
-  /** Whether this layer is actually shared by other nets*/
-  bool is_shared_;
-
-  /** The mutex for sequential forward if this layer is shared */
-  shared_ptr<boost::mutex> forward_mutex_;
-
-  /** Initialize forward_mutex_ */
-  void InitMutex();
-  /** Lock forward_mutex_ if this layer is shared */
-  void Lock();
-  /** Unlock forward_mutex_ if this layer is shared */
-  void Unlock();
-
-=======
->>>>>>> caffe-bvlc-dev/master
   DISABLE_COPY_AND_ASSIGN(Layer);
 };  // class Layer
 
@@ -469,11 +412,6 @@ class Layer {
 template <typename Dtype>
 inline Dtype Layer<Dtype>::Forward(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
-<<<<<<< HEAD
-  // Lock during forward to ensure sequential forward
-  Lock();
-=======
->>>>>>> caffe-bvlc-dev/master
   Dtype loss = 0;
   Reshape(bottom, top);
   switch (Caffe::mode()) {
@@ -504,10 +442,6 @@ inline Dtype Layer<Dtype>::Forward(const vector<Blob<Dtype>*>& bottom,
   default:
     LOG(FATAL) << "Unknown caffe mode.";
   }
-<<<<<<< HEAD
-  Unlock();
-=======
->>>>>>> caffe-bvlc-dev/master
   return loss;
 }
 

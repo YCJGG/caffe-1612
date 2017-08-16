@@ -18,14 +18,8 @@ using std::endl;
   #include "caffe_config.h"
 #else
   #define CUDA_TEST_DEVICE -1
-<<<<<<< HEAD
-  #define CMAKE_SOURCE_DIR "src/"
-  #define EXAMPLES_SOURCE_DIR "examples/"
-  #define CMAKE_EXT ""
-=======
   #define EXAMPLES_SOURCE_DIR "examples/"
   #define ABS_TEST_DATA_DIR "src/caffe/test/test_data"
->>>>>>> caffe-bvlc-dev/master
 #endif
 
 int main(int argc, char** argv);

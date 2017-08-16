@@ -101,11 +101,7 @@ class ResizeCropImagesMapper(mapreducer.BasicMapper):
         yield value, FLAGS.output_folder
 
 mapreducer.REGISTER_DEFAULT_MAPPER(ResizeCropImagesMapper)
-<<<<<<< HEAD
-
-=======
 mapreducer.REGISTER_DEFAULT_REDUCER(mapreducer.NoPassReducer)
->>>>>>> caffe-bvlc-dev/master
 mapreducer.REGISTER_DEFAULT_READER(mapreducer.FileReader)
 mapreducer.REGISTER_DEFAULT_WRITER(mapreducer.FileWriter)
  

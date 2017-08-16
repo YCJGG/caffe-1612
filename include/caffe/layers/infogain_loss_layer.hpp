@@ -8,10 +8,7 @@
 #include "caffe/proto/caffe.pb.h"
 
 #include "caffe/layers/loss_layer.hpp"
-<<<<<<< HEAD
-=======
 #include "caffe/layers/softmax_layer.hpp"
->>>>>>> caffe-bvlc-dev/master
 
 namespace caffe {
 
@@ -64,15 +61,12 @@ class InfogainLossLayer : public LossLayer<Dtype> {
   virtual inline int MinBottomBlobs() const { return 2; }
   virtual inline int MaxBottomBlobs() const { return 3; }
 
-<<<<<<< HEAD
-=======
   // InfogainLossLayer computes softmax prob internally.
   // optional second "top" outputs the softmax prob
   virtual inline int ExactNumTopBlobs() const { return -1; }
   virtual inline int MinTopBlobs() const { return 1; }
   virtual inline int MaxTopBlobs() const { return 2; }
 
->>>>>>> caffe-bvlc-dev/master
   virtual inline const char* type() const { return "InfogainLoss"; }
 
  protected:
@@ -115,9 +109,6 @@ class InfogainLossLayer : public LossLayer<Dtype> {
   virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
 
-<<<<<<< HEAD
-  Blob<Dtype> infogain_;
-=======
   /// Read the normalization mode parameter and compute the normalizer based
   /// on the blob size.  If normalization_mode is VALID, the count of valid
   /// outputs will be read from valid_count, unless it is -1 in which case
@@ -147,7 +138,6 @@ class InfogainLossLayer : public LossLayer<Dtype> {
   LossParameter_NormalizationMode normalization_;
 
   int infogain_axis_, outer_num_, inner_num_, num_labels_;
->>>>>>> caffe-bvlc-dev/master
 };
 
 }  // namespace caffe

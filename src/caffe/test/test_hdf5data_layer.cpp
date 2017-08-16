@@ -30,12 +30,7 @@ class HDF5DataLayerTest : public MultiDeviceTest<TypeParam> {
     blob_top_vec_.push_back(blob_top_label2_);
 
     // Check out generate_sample_data.py in the same directory.
-<<<<<<< HEAD
-    filename = new string(
-    CMAKE_SOURCE_DIR "caffe/test/test_data/sample_data_list.txt" CMAKE_EXT);
-=======
     filename = new string(ABS_TEST_DATA_DIR "/sample_data_list.txt");
->>>>>>> caffe-bvlc-dev/master
     LOG(INFO)<< "Using sample HDF5 data file " << filename;
   }
 
@@ -74,11 +69,7 @@ TYPED_TEST(HDF5DataLayerTest, TestRead) {
   int height = 6;
   int width = 5;
 
-<<<<<<< HEAD
-  // Test that the layer setup got the correct parameters.
-=======
   // Test that the layer setup gives correct parameters.
->>>>>>> caffe-bvlc-dev/master
   HDF5DataLayer<Dtype> layer(param);
   layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
   EXPECT_EQ(this->blob_top_data_->num(), batch_size);
@@ -141,8 +132,6 @@ TYPED_TEST(HDF5DataLayerTest, TestRead) {
   }
 }
 
-<<<<<<< HEAD
-=======
 TYPED_TEST(HDF5DataLayerTest, TestSkip) {
   typedef typename TypeParam::Dtype Dtype;
   LayerParameter param;
@@ -173,5 +162,4 @@ TYPED_TEST(HDF5DataLayerTest, TestSkip) {
   Caffe::set_solver_rank(0);
 }
 
->>>>>>> caffe-bvlc-dev/master
 }  // namespace caffe

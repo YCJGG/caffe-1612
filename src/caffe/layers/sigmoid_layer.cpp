@@ -7,11 +7,7 @@ namespace caffe {
 
 template <typename Dtype>
 inline Dtype sigmoid(Dtype x) {
-<<<<<<< HEAD
-  return 1. / (1. + exp(-x));
-=======
   return 0.5 * tanh(0.5 * x) + 0.5;
->>>>>>> caffe-bvlc-dev/master
 }
 
 template <typename Dtype>

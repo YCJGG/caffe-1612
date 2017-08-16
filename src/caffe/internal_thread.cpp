@@ -28,43 +28,27 @@ void InternalThread::StartInternalThread() {
   Caffe::Brew mode = Caffe::mode();
   int rand_seed = caffe_rng_rand();
   int solver_count = Caffe::solver_count();
-<<<<<<< HEAD
-  bool root_solver = Caffe::root_solver();
-
-  try {
-    thread_.reset(new boost::thread(&InternalThread::entry, this, device, mode,
-          rand_seed, solver_count, root_solver));
-=======
   int solver_rank = Caffe::solver_rank();
   bool multiprocess = Caffe::multiprocess();
 
   try {
     thread_.reset(new boost::thread(&InternalThread::entry, this, device, mode,
           rand_seed, solver_count, solver_rank, multiprocess));
->>>>>>> caffe-bvlc-dev/master
   } catch (std::exception& e) {
     LOG(FATAL) << "Thread exception: " << e.what();
   }
 }
 
 void InternalThread::entry(int device, Caffe::Brew mode, int rand_seed,
-<<<<<<< HEAD
-    int solver_count, bool root_solver) {
-=======
     int solver_count, int solver_rank, bool multiprocess) {
->>>>>>> caffe-bvlc-dev/master
 #ifndef CPU_ONLY
   CUDA_CHECK(cudaSetDevice(device));
 #endif
   Caffe::set_mode(mode);
   Caffe::set_random_seed(rand_seed);
   Caffe::set_solver_count(solver_count);
-<<<<<<< HEAD
-  Caffe::set_root_solver(root_solver);
-=======
   Caffe::set_solver_rank(solver_rank);
   Caffe::set_multiprocess(multiprocess);
->>>>>>> caffe-bvlc-dev/master
 
   InternalThreadEntry();
 }
@@ -81,7 +65,7 @@ void InternalThread::StopInternalThread() {
   }
 }
 
-<<<<<<< HEAD
+// for image_seg_data layer
 /** Will not return until the internal thread has exited. */
 bool InternalThread::WaitForInternalThreadToExit() {
   if (is_started()) {
@@ -94,6 +78,4 @@ bool InternalThread::WaitForInternalThreadToExit() {
   return true;
 }
 
-=======
->>>>>>> caffe-bvlc-dev/master
 }  // namespace caffe

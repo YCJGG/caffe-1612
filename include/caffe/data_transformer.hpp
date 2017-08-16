@@ -1,13 +1,11 @@
 #ifndef CAFFE_DATA_TRANSFORMER_HPP
 #define CAFFE_DATA_TRANSFORMER_HPP
 
-<<<<<<< HEAD
+// for image_seg_data layer
 #ifdef USE_OPENCV
 #include <opencv2/core/core.hpp>
 #endif  // USE_OPENCV
 
-=======
->>>>>>> caffe-bvlc-dev/master
 #include <vector>
 
 #include "caffe/blob.hpp"
@@ -82,14 +80,12 @@ class DataTransformer {
    *    set_cpu_data() is used. See image_data_layer.cpp for an example.
    */
   void Transform(const cv::Mat& cv_img, Blob<Dtype>* transformed_blob);
-<<<<<<< HEAD
 
+  // for image_seg_data layer
   void TransformImgAndSeg(const std::vector<cv::Mat>& cv_img_seg,
     Blob<Dtype>* transformed_data_blob, Blob<Dtype>* transformed_label_blob,
     const int ignore_label);
 
-=======
->>>>>>> caffe-bvlc-dev/master
 #endif  // USE_OPENCV
 
   /**

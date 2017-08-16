@@ -13,11 +13,7 @@ The GPUs to be used for training can be set with the "-gpu" flag on the command 
 # Hardware Configuration Assumptions
 
 The current implementation uses a tree reduction strategy.  e.g. if there are 4 GPUs in the system, 0:1, 2:3 will exchange gradients, then 0:2 (top of the tree) will exchange gradients, 0 will calculate
-<<<<<<< HEAD
-updated model, 0\-\>2, and then 0\-\>1, 2\-\>3. 
-=======
 updated model, 0\-\>2, and then 0\-\>1, 2\-\>3.
->>>>>>> caffe-bvlc-dev/master
 
 For best performance, P2P DMA access between devices is needed. Without P2P access, for example crossing PCIe root complex, data is copied through host and effective exchange bandwidth is greatly reduced.
 
@@ -27,8 +23,4 @@ Current implementation has a "soft" assumption that the devices being used are h
 
 # Scaling Performance
 
-<<<<<<< HEAD
 Performance is **heavily** dependent on the PCIe topology of the system, the configuration of the neural network you are training, and the speed of each of the layers.  Systems like the DIGITS DevBox have an optimized PCIe topology (X99-E WS chipset).  In general, scaling on 2 GPUs tends to be ~1.8X on average for networks like AlexNet, CaffeNet, VGG, GoogleNet.  4 GPUs begins to have falloff in scaling.  Generally with "weak scaling" where the batchsize increases with the number of GPUs you will see 3.5x scaling or so.  With "strong scaling", the system can become communication bound, especially with layer performance optimizations like those in [cuDNNv3](http://nvidia.com/cudnn), and you will likely see closer to mid 2.x scaling in performance.  Networks that have heavy computation compared to the number of parameters tend to have the best scaling performance.
-=======
-Performance is **heavily** dependent on the PCIe topology of the system, the configuration of the neural network you are training, and the speed of each of the layers.  Systems like the DIGITS DevBox have an optimized PCIe topology (X99-E WS chipset).  In general, scaling on 2 GPUs tends to be ~1.8X on average for networks like AlexNet, CaffeNet, VGG, GoogleNet.  4 GPUs begins to have falloff in scaling.  Generally with "weak scaling" where the batchsize increases with the number of GPUs you will see 3.5x scaling or so.  With "strong scaling", the system can become communication bound, especially with layer performance optimizations like those in [cuDNNv3](http://nvidia.com/cudnn), and you will likely see closer to mid 2.x scaling in performance.  Networks that have heavy computation compared to the number of parameters tend to have the best scaling performance.
->>>>>>> caffe-bvlc-dev/master

@@ -1,9 +1,7 @@
 #ifdef USE_OPENCV
 #include <opencv2/core/core.hpp>
-<<<<<<< HEAD
+// for image_seg_data layer
 #include <opencv2/imgproc/imgproc.hpp>
-=======
->>>>>>> caffe-bvlc-dev/master
 #endif  // USE_OPENCV
 
 #include <string>
@@ -134,11 +132,7 @@ void DataTransformer<Dtype>::Transform(const Datum& datum,
 template<typename Dtype>
 void DataTransformer<Dtype>::Transform(const Datum& datum,
                                        Blob<Dtype>* transformed_blob) {
-<<<<<<< HEAD
-  // If datum is encoded, decoded and transform the cv::image.
-=======
   // If datum is encoded, decode and transform the cv::image.
->>>>>>> caffe-bvlc-dev/master
   if (datum.encoded()) {
 #ifdef USE_OPENCV
     CHECK(!(param_.force_color() && param_.force_gray()))
@@ -331,8 +325,7 @@ void DataTransformer<Dtype>::Transform(const cv::Mat& cv_img,
     }
   }
 }
-<<<<<<< HEAD
-
+// for image_seg_data layer
 template<typename Dtype>
 void DataTransformer<Dtype>::TransformImgAndSeg(const std::vector<cv::Mat>& cv_img_seg,
   Blob<Dtype>* transformed_data_blob, Blob<Dtype>* transformed_label_blob, const int ignore_label) {
@@ -491,8 +484,6 @@ void DataTransformer<Dtype>::TransformImgAndSeg(const std::vector<cv::Mat>& cv_i
   }
 
 }
-=======
->>>>>>> caffe-bvlc-dev/master
 #endif  // USE_OPENCV
 
 template<typename Dtype>

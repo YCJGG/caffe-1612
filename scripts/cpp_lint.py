@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-#!/usr/bin/python2
-=======
 #!/usr/bin/env python
->>>>>>> caffe-bvlc-dev/master
 #
 # Copyright (c) 2009 Google Inc. All rights reserved.
 #
@@ -56,13 +52,10 @@ import string
 import sys
 import unicodedata
 
-<<<<<<< HEAD
-=======
 import six
 
 from six import iteritems, itervalues
 from six.moves import xrange
->>>>>>> caffe-bvlc-dev/master
 
 _USAGE = """
 Syntax: cpp_lint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
@@ -767,11 +760,7 @@ class _CppLintState(object):
 
   def PrintErrorCounts(self):
     """Print a summary of errors by category, and the total."""
-<<<<<<< HEAD
-    for category, count in self.errors_by_category.iteritems():
-=======
     for category, count in iteritems(self.errors_by_category):
->>>>>>> caffe-bvlc-dev/master
       sys.stderr.write('Category \'%s\' errors found: %d\n' %
                        (category, count))
     sys.stderr.write('Total errors found: %d\n' % self.error_count)
@@ -3459,18 +3448,6 @@ def GetLineWidth(line):
     The width of the line in column positions, accounting for Unicode
     combining characters and wide characters.
   """
-<<<<<<< HEAD
-  if isinstance(line, unicode):
-    width = 0
-    for uc in unicodedata.normalize('NFC', line):
-      if unicodedata.east_asian_width(uc) in ('W', 'F'):
-        width += 2
-      elif not unicodedata.combining(uc):
-        width += 1
-    return width
-  else:
-    return len(line)
-=======
   if six.PY2:
     if isinstance(line, unicode):
       width = 0
@@ -3481,8 +3458,6 @@ def GetLineWidth(line):
           width += 1
       return width
   return len(line)
->>>>>>> caffe-bvlc-dev/master
-
 
 def CheckStyle(filename, clean_lines, linenum, file_extension, nesting_state,
                error):
@@ -3802,11 +3777,7 @@ def _GetTextInside(text, start_pattern):
 
   # Give opening punctuations to get the matching close-punctuations.
   matching_punctuation = {'(': ')', '{': '}', '[': ']'}
-<<<<<<< HEAD
-  closing_punctuation = set(matching_punctuation.itervalues())
-=======
   closing_punctuation = set(itervalues(matching_punctuation))
->>>>>>> caffe-bvlc-dev/master
 
   # Find the position to start extracting text.
   match = re.search(start_pattern, text, re.M)
@@ -4883,19 +4854,11 @@ def main():
 
   # Change stderr to write with replacement characters so we don't die
   # if we try to print something containing non-ASCII characters.
-<<<<<<< HEAD
-  sys.stderr = codecs.StreamReaderWriter(sys.stderr,
-                                         codecs.getreader('utf8'),
-                                         codecs.getwriter('utf8'),
-                                         'replace')
-=======
   if six.PY2:
     sys.stderr = codecs.StreamReaderWriter(sys.stderr,
                                           codecs.getreader('utf8'),
                                           codecs.getwriter('utf8'),
                                           'replace')
->>>>>>> caffe-bvlc-dev/master
-
   _cpplint_state.ResetErrorCounts()
   for filename in filenames:
     ProcessFile(filename, _cpplint_state.verbose_level)

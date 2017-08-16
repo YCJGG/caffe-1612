@@ -3,10 +3,6 @@
 #include "caffe/util/math_functions.hpp"
 
 namespace caffe {
-<<<<<<< HEAD
-
-SyncedMemory::~SyncedMemory() {
-=======
 SyncedMemory::SyncedMemory()
   : cpu_ptr_(NULL), gpu_ptr_(NULL), size_(0), head_(UNINITIALIZED),
     own_cpu_data_(false), cpu_malloc_use_cuda_(false), own_gpu_data_(false) {
@@ -29,33 +25,19 @@ SyncedMemory::SyncedMemory(size_t size)
 
 SyncedMemory::~SyncedMemory() {
   check_device();
->>>>>>> caffe-bvlc-dev/master
   if (cpu_ptr_ && own_cpu_data_) {
     CaffeFreeHost(cpu_ptr_, cpu_malloc_use_cuda_);
   }
 
 #ifndef CPU_ONLY
   if (gpu_ptr_ && own_gpu_data_) {
-<<<<<<< HEAD
-    int initial_device;
-    cudaGetDevice(&initial_device);
-    if (gpu_device_ != -1) {
-      CUDA_CHECK(cudaSetDevice(gpu_device_));
-    }
     CUDA_CHECK(cudaFree(gpu_ptr_));
-    cudaSetDevice(initial_device);
-=======
-    CUDA_CHECK(cudaFree(gpu_ptr_));
->>>>>>> caffe-bvlc-dev/master
   }
 #endif  // CPU_ONLY
 }
 
 inline void SyncedMemory::to_cpu() {
-<<<<<<< HEAD
-=======
   check_device();
->>>>>>> caffe-bvlc-dev/master
   switch (head_) {
   case UNINITIALIZED:
     CaffeMallocHost(&cpu_ptr_, size_, &cpu_malloc_use_cuda_);
@@ -82,17 +64,10 @@ inline void SyncedMemory::to_cpu() {
 }
 
 inline void SyncedMemory::to_gpu() {
-<<<<<<< HEAD
-#ifndef CPU_ONLY
-  switch (head_) {
-  case UNINITIALIZED:
-    CUDA_CHECK(cudaGetDevice(&gpu_device_));
-=======
   check_device();
 #ifndef CPU_ONLY
   switch (head_) {
   case UNINITIALIZED:
->>>>>>> caffe-bvlc-dev/master
     CUDA_CHECK(cudaMalloc(&gpu_ptr_, size_));
     caffe_gpu_memset(size_, 0, gpu_ptr_);
     head_ = HEAD_AT_GPU;
@@ -100,10 +75,6 @@ inline void SyncedMemory::to_gpu() {
     break;
   case HEAD_AT_CPU:
     if (gpu_ptr_ == NULL) {
-<<<<<<< HEAD
-      CUDA_CHECK(cudaGetDevice(&gpu_device_));
-=======
->>>>>>> caffe-bvlc-dev/master
       CUDA_CHECK(cudaMalloc(&gpu_ptr_, size_));
       own_gpu_data_ = true;
     }
@@ -120,19 +91,13 @@ inline void SyncedMemory::to_gpu() {
 }
 
 const void* SyncedMemory::cpu_data() {
-<<<<<<< HEAD
-=======
   check_device();
->>>>>>> caffe-bvlc-dev/master
   to_cpu();
   return (const void*)cpu_ptr_;
 }
 
 void SyncedMemory::set_cpu_data(void* data) {
-<<<<<<< HEAD
-=======
   check_device();
->>>>>>> caffe-bvlc-dev/master
   CHECK(data);
   if (own_cpu_data_) {
     CaffeFreeHost(cpu_ptr_, cpu_malloc_use_cuda_);
@@ -143,10 +108,7 @@ void SyncedMemory::set_cpu_data(void* data) {
 }
 
 const void* SyncedMemory::gpu_data() {
-<<<<<<< HEAD
-=======
   check_device();
->>>>>>> caffe-bvlc-dev/master
 #ifndef CPU_ONLY
   to_gpu();
   return (const void*)gpu_ptr_;
@@ -157,24 +119,11 @@ const void* SyncedMemory::gpu_data() {
 }
 
 void SyncedMemory::set_gpu_data(void* data) {
-<<<<<<< HEAD
-#ifndef CPU_ONLY
-  CHECK(data);
-  if (own_gpu_data_) {
-    int initial_device;
-    cudaGetDevice(&initial_device);
-    if (gpu_device_ != -1) {
-      CUDA_CHECK(cudaSetDevice(gpu_device_));
-    }
-    CUDA_CHECK(cudaFree(gpu_ptr_));
-    cudaSetDevice(initial_device);
-=======
   check_device();
 #ifndef CPU_ONLY
   CHECK(data);
   if (own_gpu_data_) {
     CUDA_CHECK(cudaFree(gpu_ptr_));
->>>>>>> caffe-bvlc-dev/master
   }
   gpu_ptr_ = data;
   head_ = HEAD_AT_GPU;
@@ -185,20 +134,14 @@ void SyncedMemory::set_gpu_data(void* data) {
 }
 
 void* SyncedMemory::mutable_cpu_data() {
-<<<<<<< HEAD
-=======
   check_device();
->>>>>>> caffe-bvlc-dev/master
   to_cpu();
   head_ = HEAD_AT_CPU;
   return cpu_ptr_;
 }
 
 void* SyncedMemory::mutable_gpu_data() {
-<<<<<<< HEAD
-=======
   check_device();
->>>>>>> caffe-bvlc-dev/master
 #ifndef CPU_ONLY
   to_gpu();
   head_ = HEAD_AT_GPU;
@@ -211,15 +154,9 @@ void* SyncedMemory::mutable_gpu_data() {
 
 #ifndef CPU_ONLY
 void SyncedMemory::async_gpu_push(const cudaStream_t& stream) {
-<<<<<<< HEAD
-  CHECK(head_ == HEAD_AT_CPU);
-  if (gpu_ptr_ == NULL) {
-    CUDA_CHECK(cudaGetDevice(&gpu_device_));
-=======
   check_device();
   CHECK(head_ == HEAD_AT_CPU);
   if (gpu_ptr_ == NULL) {
->>>>>>> caffe-bvlc-dev/master
     CUDA_CHECK(cudaMalloc(&gpu_ptr_, size_));
     own_gpu_data_ = true;
   }
@@ -230,8 +167,6 @@ void SyncedMemory::async_gpu_push(const cudaStream_t& stream) {
 }
 #endif
 
-<<<<<<< HEAD
-=======
 void SyncedMemory::check_device() {
 #ifndef CPU_ONLY
 #ifdef DEBUG
@@ -247,6 +182,5 @@ void SyncedMemory::check_device() {
 #endif
 }
 
->>>>>>> caffe-bvlc-dev/master
 }  // namespace caffe
 

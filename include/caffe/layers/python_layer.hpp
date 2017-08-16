@@ -21,13 +21,8 @@ class PythonLayer : public Layer<Dtype> {
     // Disallow PythonLayer in MultiGPU training stage, due to GIL issues
     // Details: https://github.com/BVLC/caffe/issues/2936
     if (this->phase_ == TRAIN && Caffe::solver_count() > 1
-<<<<<<< HEAD
-        && !ShareInParallel()) {
-      LOG(FATAL) << "PythonLayer is not implemented in Multi-GPU training";
-=======
         && !Caffe::multiprocess()) {
       LOG(FATAL) << "PythonLayer does not support CLI Multi-GPU, use train.py";
->>>>>>> caffe-bvlc-dev/master
     }
     self_.attr("param_str") = bp::str(
         this->layer_param_.python_param().param_str());
@@ -39,13 +34,6 @@ class PythonLayer : public Layer<Dtype> {
     self_.attr("reshape")(bottom, top);
   }
 
-<<<<<<< HEAD
-  virtual inline bool ShareInParallel() const {
-    return this->layer_param_.python_param().share_in_parallel();
-  }
-
-=======
->>>>>>> caffe-bvlc-dev/master
   virtual inline const char* type() const { return "Python"; }
 
  protected:

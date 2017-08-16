@@ -23,16 +23,9 @@ namespace caffe {
 template <typename Dtype>
 class Net {
  public:
-<<<<<<< HEAD
-  explicit Net(const NetParameter& param, const Net* root_net = NULL);
-  explicit Net(const string& param_file, Phase phase,
-      const int level = 0, const vector<string>* stages = NULL,
-      const Net* root_net = NULL);
-=======
   explicit Net(const NetParameter& param);
   explicit Net(const string& param_file, Phase phase,
       const int level = 0, const vector<string>* stages = NULL);
->>>>>>> caffe-bvlc-dev/master
   virtual ~Net() {}
 
   /// @brief Initialize a network with a NetParameter.
@@ -234,8 +227,6 @@ class Net {
   static bool StateMeetsRule(const NetState& state, const NetStateRule& rule,
       const string& layer_name);
 
-<<<<<<< HEAD
-=======
   // Invoked at specific points during an iteration
   class Callback {
    protected:
@@ -261,7 +252,6 @@ class Net {
     after_backward_.push_back(value);
   }
 
->>>>>>> caffe-bvlc-dev/master
  protected:
   // Helpers for Init.
   /// @brief Append a new top blob to the net.
@@ -340,11 +330,6 @@ class Net {
   size_t memory_used_;
   /// Whether to compute and display debug info for the net.
   bool debug_info_;
-<<<<<<< HEAD
-  /// The root net that actually holds the shared layers in data parallelism
-  const Net* const root_net_;
-  DISABLE_COPY_AND_ASSIGN(Net);
-=======
   // Callbacks
   vector<Callback*> before_forward_;
   vector<Callback*> after_forward_;
@@ -352,7 +337,6 @@ class Net {
   vector<Callback*> after_backward_;
 
 DISABLE_COPY_AND_ASSIGN(Net);
->>>>>>> caffe-bvlc-dev/master
 };
 
 
