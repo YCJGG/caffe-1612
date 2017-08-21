@@ -133,6 +133,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/caffe.dir/layers/image_seg_data_layer.cpp.o"
   "CMakeFiles/caffe.dir/layers/power_layer.cpp.o"
   "CMakeFiles/caffe.dir/layers/resize_layer.cpp.o"
+  "CMakeFiles/caffe.dir/layers/duc_aggregation_layer.cpp.o"
   "CMakeFiles/caffe.dir/layers/mvn_layer.cpp.o"
   "CMakeFiles/caffe.dir/layers/window_data_layer.cpp.o"
   "CMakeFiles/caffe.dir/layers/bnll_layer.cpp.o"

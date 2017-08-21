@@ -308,7 +308,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 156 (last added: resize_param)
+// LayerParameter next available layer-specific ID: 157 (last added: duc_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -411,6 +411,12 @@ message LayerParameter {
   optional DenseCRFParameter dense_crf_param = 152;
   optional InflationFactorParameter inflation_factor_param = 154;
   optional ResizeParameter resize_param = 155;
+  optional DUCParameter duc_param = 156;
+}
+
+// used for DUC_aggregation Layer - 2017-08-17
+message DUCParameter {
+  required uint32 upsampling_factor = 1 [default = 1];
 }
 
 // used for Resize Layer - 2017-06-11

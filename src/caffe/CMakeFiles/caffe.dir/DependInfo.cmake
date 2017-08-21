@@ -37,6 +37,7 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/kfxw/Development/caffe-1612/src/caffe/layers/deconv_layer.cpp" "/home/kfxw/Development/caffe-1612/src/caffe/CMakeFiles/caffe.dir/layers/deconv_layer.cpp.o"
   "/home/kfxw/Development/caffe-1612/src/caffe/layers/densecrf_layer.cpp" "/home/kfxw/Development/caffe-1612/src/caffe/CMakeFiles/caffe.dir/layers/densecrf_layer.cpp.o"
   "/home/kfxw/Development/caffe-1612/src/caffe/layers/dropout_layer.cpp" "/home/kfxw/Development/caffe-1612/src/caffe/CMakeFiles/caffe.dir/layers/dropout_layer.cpp.o"
+  "/home/kfxw/Development/caffe-1612/src/caffe/layers/duc_aggregation_layer.cpp" "/home/kfxw/Development/caffe-1612/src/caffe/CMakeFiles/caffe.dir/layers/duc_aggregation_layer.cpp.o"
   "/home/kfxw/Development/caffe-1612/src/caffe/layers/dummy_data_layer.cpp" "/home/kfxw/Development/caffe-1612/src/caffe/CMakeFiles/caffe.dir/layers/dummy_data_layer.cpp.o"
   "/home/kfxw/Development/caffe-1612/src/caffe/layers/eltwise_layer.cpp" "/home/kfxw/Development/caffe-1612/src/caffe/CMakeFiles/caffe.dir/layers/eltwise_layer.cpp.o"
   "/home/kfxw/Development/caffe-1612/src/caffe/layers/elu_layer.cpp" "/home/kfxw/Development/caffe-1612/src/caffe/CMakeFiles/caffe.dir/layers/elu_layer.cpp.o"

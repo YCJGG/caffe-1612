@@ -1102,6 +1102,33 @@ layers/dropout_layer.cpp.s:
 	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f src/caffe/CMakeFiles/caffe.dir/build.make src/caffe/CMakeFiles/caffe.dir/layers/dropout_layer.cpp.s
 .PHONY : layers/dropout_layer.cpp.s
 
+layers/duc_aggregation_layer.o: layers/duc_aggregation_layer.cpp.o
+
+.PHONY : layers/duc_aggregation_layer.o
+
+# target to build an object file
+layers/duc_aggregation_layer.cpp.o:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f src/caffe/CMakeFiles/caffe.dir/build.make src/caffe/CMakeFiles/caffe.dir/layers/duc_aggregation_layer.cpp.o
+.PHONY : layers/duc_aggregation_layer.cpp.o
+
+layers/duc_aggregation_layer.i: layers/duc_aggregation_layer.cpp.i
+
+.PHONY : layers/duc_aggregation_layer.i
+
+# target to preprocess a source file
+layers/duc_aggregation_layer.cpp.i:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f src/caffe/CMakeFiles/caffe.dir/build.make src/caffe/CMakeFiles/caffe.dir/layers/duc_aggregation_layer.cpp.i
+.PHONY : layers/duc_aggregation_layer.cpp.i
+
+layers/duc_aggregation_layer.s: layers/duc_aggregation_layer.cpp.s
+
+.PHONY : layers/duc_aggregation_layer.s
+
+# target to generate assembly for a file
+layers/duc_aggregation_layer.cpp.s:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f src/caffe/CMakeFiles/caffe.dir/build.make src/caffe/CMakeFiles/caffe.dir/layers/duc_aggregation_layer.cpp.s
+.PHONY : layers/duc_aggregation_layer.cpp.s
+
 layers/dummy_data_layer.o: layers/dummy_data_layer.cpp.o
 
 .PHONY : layers/dummy_data_layer.o
@@ -3459,6 +3486,9 @@ help:
 	@echo "... layers/dropout_layer.o"
 	@echo "... layers/dropout_layer.i"
 	@echo "... layers/dropout_layer.s"
+	@echo "... layers/duc_aggregation_layer.o"
+	@echo "... layers/duc_aggregation_layer.i"
+	@echo "... layers/duc_aggregation_layer.s"
 	@echo "... layers/dummy_data_layer.o"
 	@echo "... layers/dummy_data_layer.i"
 	@echo "... layers/dummy_data_layer.s"
