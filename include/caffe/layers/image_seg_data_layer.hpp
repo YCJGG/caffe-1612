@@ -51,8 +51,15 @@ class ImageDimPrefetchingDataLayer : public BasePrefetchingDataLayer<Dtype> {
   virtual void InternalThreadEntry() {}
 
  protected:
+  // used to load data dim (top[2])
   Blob<Dtype> prefetch_data_dim_;
   bool output_data_dim_;
+  // similar to transformed_data_ in base_data_layer.hpp
+  Blob<Dtype> transformed_label_;
+  // used to load additional channel
+  bool output_additional_channel_;
+  Blob<Dtype> prefetch_additional_channel_;
+  Blob<Dtype> transformed_additional_channel_;
 };
 
 
@@ -76,11 +83,10 @@ class ImageSegDataLayer : public ImageDimPrefetchingDataLayer<Dtype> {
   virtual inline void load_batch(Batch<Dtype>* batch) {return ;}
 
  protected:
-  Blob<Dtype> transformed_label_;
-
+  // used to shuffle image list
   shared_ptr<Caffe::RNG> prefetch_rng_;
-
-  vector<std::pair<std::string, std::string> > lines_;
+  // used to read image list
+  vector<std::vector<std::string> > lines_;
   int lines_id_;
 };
 

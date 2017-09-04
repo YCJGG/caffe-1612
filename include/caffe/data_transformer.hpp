@@ -85,6 +85,10 @@ class DataTransformer {
   void TransformImgAndSeg(const std::vector<cv::Mat>& cv_img_seg,
     Blob<Dtype>* transformed_data_blob, Blob<Dtype>* transformed_label_blob,
     const int ignore_label);
+  // for image_seg_data layer
+  void TransformImgAndSegAndAddChannel(const std::vector<cv::Mat>& cv_img_seg,
+    Blob<Dtype>* transformed_data_blob, Blob<Dtype>* transformed_label_blob, Blob<Dtype>* transformed_add_ch_blob,
+    const int ignore_label);
 
 #endif  // USE_OPENCV
 
