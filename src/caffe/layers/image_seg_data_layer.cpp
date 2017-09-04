@@ -25,15 +25,10 @@ template <typename Dtype>
 void ImageDimPrefetchingDataLayer<Dtype>::LayerSetUp(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
   BaseDataLayer<Dtype>::LayerSetUp(bottom, top);
-  if (top.size() >= 3) {
-    this->output_data_dim_ = true;
+  if (top.size() == 3) {
+    output_data_dim_ = true;
   } else {
-    this->output_data_dim_ = false;
-  }
-  if (top.size() == 4) {
-    this->output_additional_channel_ = true;
-  } else {
-    this->output_additional_channel_ = false;
+    output_data_dim_ = false;
   }
   // Now, start the prefetch thread. Before calling prefetch, we make two
   // cpu_data calls so that the prefetch thread does not accidentally make
@@ -43,11 +38,8 @@ void ImageDimPrefetchingDataLayer<Dtype>::LayerSetUp(
   if (this->output_labels_) {
     this->prefetch_label_.mutable_cpu_data();
   }
-  if (this->output_data_dim_) {
-    this->prefetch_data_dim_.mutable_cpu_data();
-  }
-  if (this->output_additional_channel_) {
-    this->prefetch_additional_channel_.mutable_cpu_data();
+  if (output_data_dim_) {
+    prefetch_data_dim_.mutable_cpu_data();
   }
 
   DLOG(INFO) << "Initializing prefetch";
@@ -70,13 +62,9 @@ void ImageDimPrefetchingDataLayer<Dtype>::Forward_cpu(
     caffe_copy(this->prefetch_label_.count(), this->prefetch_label_.cpu_data(),
                top[1]->mutable_cpu_data());
   }
-  if (this->output_data_dim_) {
-    caffe_copy(this->prefetch_data_dim_.count(), this->prefetch_data_dim_.cpu_data(),
+  if (output_data_dim_) {
+    caffe_copy(prefetch_data_dim_.count(), prefetch_data_dim_.cpu_data(),
 	       top[2]->mutable_cpu_data());
-  }
-  if (this->output_additional_channel_) {
-    caffe_copy(this->prefetch_additional_channel_.count(), this->prefetch_additional_channel_.cpu_data(),
-	       top[3]->mutable_cpu_data());
   }
 
   // Start a new prefetch thread
@@ -121,18 +109,10 @@ void ImageSegDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom
     string imgfn;
     iss >> imgfn;
     string segfn = "";
-    string addfn = "";
     if (label_type != 0) { //ImageDataParameter_LabelType_NONE = 0
       iss >> segfn;
     }
-    if (this->output_additional_channel_) { //top.size() == 4
-      iss >> addfn;
-    }
-    std::vector<string> line_;
-    line_.push_back(imgfn);
-    line_.push_back(segfn);
-    line_.push_back(addfn);
-    lines_.push_back(line_);
+    lines_.push_back(std::make_pair(imgfn, segfn));
   }
 
   if (this->layer_param_.image_data_param().shuffle()) {
@@ -155,16 +135,15 @@ void ImageSegDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom
   }
 
   // Read an image, and use it to initialize the top blob.
-  cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_][0],
+  cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
                                     new_height, new_width, is_color);
   const int channels = cv_img.channels();
   const int height = cv_img.rows;
   const int width = cv_img.cols;
-
+  // image
   const int crop_size = this->layer_param_.transform_param().crop_size();
   const int batch_size = this->layer_param_.image_data_param().batch_size();
   if (crop_size > 0) {
-    // image
     top[0]->Reshape(batch_size, channels, crop_size, crop_size);
     this->prefetch_data_.Reshape(batch_size, channels, crop_size, crop_size);
     this->transformed_data_.Reshape(1, channels, crop_size, crop_size);
@@ -173,16 +152,8 @@ void ImageSegDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom
     top[1]->Reshape(batch_size, 1, crop_size, crop_size);
     this->prefetch_label_.Reshape(batch_size, 1, crop_size, crop_size);
     this->transformed_label_.Reshape(1, 1, crop_size, crop_size);
-
-    //additional channel
-    if (this->output_additional_channel_) {
-	top[3]->Reshape(batch_size, 1, crop_size, crop_size);
-	this->prefetch_additional_channel_.Reshape(batch_size, 1, crop_size, crop_size);
-	this->transformed_additional_channel_.Reshape(1, 1, crop_size, crop_size);
-    }
      
   } else {
-    // image
     top[0]->Reshape(batch_size, channels, height, width);
     this->prefetch_data_.Reshape(batch_size, channels, height, width);
     this->transformed_data_.Reshape(1, channels, height, width);
@@ -190,21 +161,12 @@ void ImageSegDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom
     //label
     top[1]->Reshape(batch_size, 1, height, width);
     this->prefetch_label_.Reshape(batch_size, 1, height, width);
-    this->transformed_label_.Reshape(1, 1, height, width);  
-
-    //additional channel
-    if (this->output_additional_channel_) {
-	top[3]->Reshape(batch_size, 1, crop_size, crop_size);
-	this->prefetch_additional_channel_.Reshape(batch_size, 1, height, width);
-	this->transformed_additional_channel_.Reshape(1, 1, height, width);
-    }   
+    this->transformed_label_.Reshape(1, 1, height, width);     
   }
 
   // image dimensions, for each image, stores (img_height, img_width)
-  if (this->output_data_dim_) {
-    top[2]->Reshape(batch_size, 1, 1, 2);
-    this->prefetch_data_dim_.Reshape(batch_size, 1, 1, 2);
-  }
+  top[2]->Reshape(batch_size, 1, 1, 2);
+  this->prefetch_data_dim_.Reshape(batch_size, 1, 1, 2);
 
   LOG(INFO) << "output data size: " << top[0]->num() << ","
 	    << top[0]->channels() << "," << top[0]->height() << ","
@@ -214,17 +176,9 @@ void ImageSegDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom
 	    << top[1]->channels() << "," << top[1]->height() << ","
 	    << top[1]->width();
   // image_dim
-  if (this->output_data_dim_) {
-    LOG(INFO) << "output data_dim size: " << top[2]->num() << ","
-	      << top[2]->channels() << "," << top[2]->height() << ","
-	      << top[2]->width();
-  }
-  // additional
-  if (this->output_additional_channel_) {
-    LOG(INFO) << "output additional_channel size: " << top[3]->num() << ","
-	      << top[3]->channels() << "," << top[3]->height() << ","
-	      << top[3]->width();
-  }
+  LOG(INFO) << "output data_dim size: " << top[2]->num() << ","
+	    << top[2]->channels() << "," << top[2]->height() << ","
+	    << top[2]->width();
 }
 
 template <typename Dtype>
@@ -245,16 +199,9 @@ void ImageSegDataLayer<Dtype>::InternalThreadEntry() {
   CHECK(this->prefetch_data_.count());
   CHECK(this->transformed_data_.count());
 
-  Dtype* top_data     	= this->prefetch_data_.mutable_cpu_data();
-  Dtype* top_label    	= this->prefetch_label_.mutable_cpu_data();
-  Dtype* top_data_dim;
-  Dtype* top_additional_channel;
-  if (this->output_data_dim_) { 
-    top_data_dim = this->prefetch_data_dim_.mutable_cpu_data();
-  }
-  if (this->output_additional_channel_) { 
-    top_additional_channel = this->prefetch_additional_channel_.mutable_cpu_data();
-  }
+  Dtype* top_data     = this->prefetch_data_.mutable_cpu_data();
+  Dtype* top_label    = this->prefetch_label_.mutable_cpu_data(); 
+  Dtype* top_data_dim = this->prefetch_data_dim_.mutable_cpu_data();
 
   const int max_height = this->prefetch_data_.height();
   const int max_width  = this->prefetch_data_.width();
@@ -269,54 +216,44 @@ void ImageSegDataLayer<Dtype>::InternalThreadEntry() {
   string root_folder   = image_data_param.root_folder();
 
   const int lines_size = lines_.size();
+  int top_data_dim_offset;
 
   for (int item_id = 0; item_id < batch_size; ++item_id) {
+    top_data_dim_offset = this->prefetch_data_dim_.offset(item_id);
+
     std::vector<cv::Mat> cv_img_seg;
 
     // get a blob
     timer.Start();
     CHECK_GT(lines_size, lines_id_);
 
-    // read image (top[0])
     int img_row, img_col;
-    cv_img_seg.push_back(ReadImageToCVMat(root_folder + lines_[lines_id_][0],
+    cv_img_seg.push_back(ReadImageToCVMat(root_folder + lines_[lines_id_].first,
 	  new_height, new_width, is_color, &img_row, &img_col));
-    if (!cv_img_seg[0].data) {
-      DLOG(INFO) << "Fail to load img: " << root_folder + lines_[lines_id_][0];
-    }
 
-    // read seg label (top[1])
-    if (label_type == ImageDataParameter_LabelType_PIXEL) {	// LabelType == PIXEL: load seg label from image
-      cv_img_seg.push_back(ReadImageToCVMat(root_folder + lines_[lines_id_][1],
+    top_data_dim[top_data_dim_offset]     = static_cast<Dtype>(std::min(max_height, img_row));
+    top_data_dim[top_data_dim_offset + 1] = static_cast<Dtype>(std::min(max_width, img_col));
+
+    if (!cv_img_seg[0].data) {
+      DLOG(INFO) << "Fail to load img: " << root_folder + lines_[lines_id_].first;
+    }
+    if (label_type == ImageDataParameter_LabelType_PIXEL) {
+      cv_img_seg.push_back(ReadImageToCVMat(root_folder + lines_[lines_id_].second,
 					    new_height, new_width, false));
       if (!cv_img_seg[1].data) {
-	DLOG(INFO) << "Fail to load seg: " << root_folder + lines_[lines_id_][1];
+	DLOG(INFO) << "Fail to load seg: " << root_folder + lines_[lines_id_].second;
       }
     }
-    else if (label_type == ImageDataParameter_LabelType_IMAGE) {// LabelType == IMAGE: all labels are a scalar specified in infile
-      const int label = atoi(lines_[lines_id_][1].c_str());
-      cv::Mat seg(cv_img_seg[0].rows, cv_img_seg[0].cols, CV_8UC1, cv::Scalar(label));
+    else if (label_type == ImageDataParameter_LabelType_IMAGE) {
+      const int label = atoi(lines_[lines_id_].second.c_str());
+      cv::Mat seg(cv_img_seg[0].rows, cv_img_seg[0].cols, 
+		  CV_8UC1, cv::Scalar(label));
       cv_img_seg.push_back(seg);      
     }
-    else {							// No specified LabelType: all labels are ignore_labels
-      cv::Mat seg(cv_img_seg[0].rows, cv_img_seg[0].cols, CV_8UC1, cv::Scalar(ignore_label));
+    else {
+      cv::Mat seg(cv_img_seg[0].rows, cv_img_seg[0].cols, 
+		  CV_8UC1, cv::Scalar(ignore_label));
       cv_img_seg.push_back(seg);
-    }
-
-    // read data_dim (top[2])
-    if (this->output_data_dim_) {
-      int top_data_dim_offset = this->prefetch_data_dim_.offset(item_id);
-      top_data_dim[top_data_dim_offset]     = static_cast<Dtype>(std::min(max_height, img_row));
-      top_data_dim[top_data_dim_offset + 1] = static_cast<Dtype>(std::min(max_width, img_col));
-    }
-
-    // read additional channel (top[3])
-    if (this->output_additional_channel_) {
-      cv_img_seg.push_back(ReadImageToCVMat(root_folder + lines_[lines_id_][2],
-					    new_height, new_width, false));
-      if (!cv_img_seg[2].data) {
-	DLOG(INFO) << "Fail to load additional channel: " << root_folder + lines_[lines_id_][2];
-      }
     }
 
     read_time += timer.MicroSeconds();
@@ -330,18 +267,9 @@ void ImageSegDataLayer<Dtype>::InternalThreadEntry() {
     offset = this->prefetch_label_.offset(item_id);
     this->transformed_label_.set_cpu_data(top_label + offset);
 
-    if (this->output_additional_channel_) {
-      this->transformed_additional_channel_.set_cpu_data(top_additional_channel + offset);
-      this->data_transformer_->TransformImgAndSegAndAddChannel(cv_img_seg, 
-	   &(this->transformed_data_), &(this->transformed_label_), &(this->transformed_additional_channel_),
-	   ignore_label);
-    }
-    else {
     this->data_transformer_->TransformImgAndSeg(cv_img_seg, 
 	 &(this->transformed_data_), &(this->transformed_label_),
 	 ignore_label);
-    }
-
     trans_time += timer.MicroSeconds();
 
     // go to the next std::vector<int>::iterator iter;
