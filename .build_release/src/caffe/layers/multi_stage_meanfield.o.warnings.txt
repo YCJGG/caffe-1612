@@ -1,0 +1,32 @@
+In file included from ./include/caffe/util/device_alternate.hpp:40:0,
+                 from ./include/caffe/common.hpp:19,
+                 from ./include/caffe/blob.hpp:8,
+                 from ./include/caffe/layers/multi_stage_meanfield.hpp:20,
+                 from src/caffe/layers/multi_stage_meanfield.cpp:16:
+./include/caffe/util/cudnn.hpp: In function ‘const char* cudnnGetErrorString(cudnnStatus_t)’:
+./include/caffe/util/cudnn.hpp:21:10: warning: enumeration value ‘CUDNN_STATUS_RUNTIME_IN_PROGRESS’ not handled in switch [-Wswitch]
+   switch (status) {
+          ^
+./include/caffe/util/cudnn.hpp:21:10: warning: enumeration value ‘CUDNN_STATUS_RUNTIME_FP_OVERFLOW’ not handled in switch [-Wswitch]
+src/caffe/layers/multi_stage_meanfield.cpp: In instantiation of ‘void caffe::MultiStageMeanfieldLayer<Dtype>::LayerSetUp(const std::vector<caffe::Blob<Dtype>*>&, const std::vector<caffe::Blob<Dtype>*>&) [with Dtype = float]’:
+src/caffe/layers/multi_stage_meanfield.cpp:274:1:   required from here
+src/caffe/layers/multi_stage_meanfield.cpp:81:19: warning: format ‘%lf’ expects argument of type ‘double*’, but argument 3 has type ‘float*’ [-Wformat=]
+             fscanf(pFile, "%lf", &this->blobs_[0]->mutable_cpu_data()[i * channels_ + i]);
+                   ^
+src/caffe/layers/multi_stage_meanfield.cpp:95:19: warning: format ‘%lf’ expects argument of type ‘double*’, but argument 3 has type ‘float*’ [-Wformat=]
+             fscanf(pFile, "%lf", &this->blobs_[1]->mutable_cpu_data()[i * channels_ + i]);
+                   ^
+src/caffe/layers/multi_stage_meanfield.cpp: In member function ‘void caffe::MultiStageMeanfieldLayer<Dtype>::LayerSetUp(const std::vector<caffe::Blob<Dtype>*>&, const std::vector<caffe::Blob<Dtype>*>&) [with Dtype = float]’:
+src/caffe/layers/multi_stage_meanfield.cpp:81:13: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+             fscanf(pFile, "%lf", &this->blobs_[0]->mutable_cpu_data()[i * channels_ + i]);
+             ^
+src/caffe/layers/multi_stage_meanfield.cpp:95:13: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+             fscanf(pFile, "%lf", &this->blobs_[1]->mutable_cpu_data()[i * channels_ + i]);
+             ^
+src/caffe/layers/multi_stage_meanfield.cpp: In member function ‘void caffe::MultiStageMeanfieldLayer<Dtype>::LayerSetUp(const std::vector<caffe::Blob<Dtype>*>&, const std::vector<caffe::Blob<Dtype>*>&) [with Dtype = double]’:
+src/caffe/layers/multi_stage_meanfield.cpp:81:13: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+             fscanf(pFile, "%lf", &this->blobs_[0]->mutable_cpu_data()[i * channels_ + i]);
+             ^
+src/caffe/layers/multi_stage_meanfield.cpp:95:13: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+             fscanf(pFile, "%lf", &this->blobs_[1]->mutable_cpu_data()[i * channels_ + i]);
+             ^
