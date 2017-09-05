@@ -19,11 +19,11 @@ class ProbLayer(caffe.Layer):
 	return
 
     def reshape(self, bottom, top):
-	top[0].reshape(*bottom[0].shape)
+	#top[0].reshape(*bottom[0].shape)
 	return
 
     def forward(self, bottom, top):
-	top[0].data[...] = bottom[0].data[...]
+	#top[0].data[...] = bottom[0].data[...]
 	#----------- visualize -------------
 	#print '!!!!!!!!!!!!!!!!!!!!!!!', bottom[1].data.shape
 	#for i in range(11):

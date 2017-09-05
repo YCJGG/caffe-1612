@@ -34,16 +34,16 @@ endif()
 
 if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/python" TYPE FILE FILES
-    "/home/kfxw/Development/caffe-1612/python/salientArea.py"
-    "/home/kfxw/Development/caffe-1612/python/classify.py"
-    "/home/kfxw/Development/caffe-1612/python/paddingClean.py"
-    "/home/kfxw/Development/caffe-1612/python/factorProvider.py"
-    "/home/kfxw/Development/caffe-1612/python/detect.py"
-    "/home/kfxw/Development/caffe-1612/python/train.py"
-    "/home/kfxw/Development/caffe-1612/python/draw_net.py"
-    "/home/kfxw/Development/caffe-1612/python/blobAlign.py"
-    "/home/kfxw/Development/caffe-1612/python/prob.py"
     "/home/kfxw/Development/caffe-1612/python/imgResize.py"
+    "/home/kfxw/Development/caffe-1612/python/train.py"
+    "/home/kfxw/Development/caffe-1612/python/prob.py"
+    "/home/kfxw/Development/caffe-1612/python/classify.py"
+    "/home/kfxw/Development/caffe-1612/python/draw_net.py"
+    "/home/kfxw/Development/caffe-1612/python/paddingClean.py"
+    "/home/kfxw/Development/caffe-1612/python/salientArea.py"
+    "/home/kfxw/Development/caffe-1612/python/detect.py"
+    "/home/kfxw/Development/caffe-1612/python/blobAlign.py"
+    "/home/kfxw/Development/caffe-1612/python/factorProvider.py"
     "/home/kfxw/Development/caffe-1612/python/requirements.txt"
     )
 endif()

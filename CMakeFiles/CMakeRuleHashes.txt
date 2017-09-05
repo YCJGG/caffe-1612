@@ -25,6 +25,7 @@ af7f7f359615ed1c68dbee03df214541 src/caffe/CMakeFiles/cuda_compile.dir/layers/cu
 04350670c2bfdbb66e9392d5933fad43 src/caffe/CMakeFiles/cuda_compile.dir/layers/cuda_compile_generated_cudnn_tanh_layer.cu.o
 cdceb653bbbe493d591abccf64c6925f src/caffe/CMakeFiles/cuda_compile.dir/layers/cuda_compile_generated_deconv_layer.cu.o
 3bf447a40faee79a8bda67a2cc7b08a1 src/caffe/CMakeFiles/cuda_compile.dir/layers/cuda_compile_generated_dropout_layer.cu.o
+7ab880f774698ad36a1b794bd8c22758 src/caffe/CMakeFiles/cuda_compile.dir/layers/cuda_compile_generated_duc_aggregation_layer.cu.o
 69dbac2d7f4e445ceecc723bde1c90a4 src/caffe/CMakeFiles/cuda_compile.dir/layers/cuda_compile_generated_eltwise_layer.cu.o
 9d22b45acc28b92f0a87806d50ed9c37 src/caffe/CMakeFiles/cuda_compile.dir/layers/cuda_compile_generated_elu_layer.cu.o
 c32a93477cd8b4e6e68669b0ac053945 src/caffe/CMakeFiles/cuda_compile.dir/layers/cuda_compile_generated_embed_layer.cu.o

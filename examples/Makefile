@@ -170,21 +170,6 @@ convert_mnist_data/fast:
 .PHONY : convert_mnist_data/fast
 
 # Convenience name for target.
-examples/CMakeFiles/convert_cifar_data.dir/rule:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 examples/CMakeFiles/convert_cifar_data.dir/rule
-.PHONY : examples/CMakeFiles/convert_cifar_data.dir/rule
-
-# Convenience name for target.
-convert_cifar_data: examples/CMakeFiles/convert_cifar_data.dir/rule
-
-.PHONY : convert_cifar_data
-
-# fast build rule for target.
-convert_cifar_data/fast:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f examples/CMakeFiles/convert_cifar_data.dir/build.make examples/CMakeFiles/convert_cifar_data.dir/build
-.PHONY : convert_cifar_data/fast
-
-# Convenience name for target.
 examples/CMakeFiles/classification.dir/rule:
 	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 examples/CMakeFiles/classification.dir/rule
 .PHONY : examples/CMakeFiles/classification.dir/rule
@@ -213,6 +198,21 @@ convert_mnist_siamese_data: examples/CMakeFiles/convert_mnist_siamese_data.dir/r
 convert_mnist_siamese_data/fast:
 	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f examples/CMakeFiles/convert_mnist_siamese_data.dir/build.make examples/CMakeFiles/convert_mnist_siamese_data.dir/build
 .PHONY : convert_mnist_siamese_data/fast
+
+# Convenience name for target.
+examples/CMakeFiles/convert_cifar_data.dir/rule:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 examples/CMakeFiles/convert_cifar_data.dir/rule
+.PHONY : examples/CMakeFiles/convert_cifar_data.dir/rule
+
+# Convenience name for target.
+convert_cifar_data: examples/CMakeFiles/convert_cifar_data.dir/rule
+
+.PHONY : convert_cifar_data
+
+# fast build rule for target.
+convert_cifar_data/fast:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f examples/CMakeFiles/convert_cifar_data.dir/build.make examples/CMakeFiles/convert_cifar_data.dir/build
+.PHONY : convert_cifar_data/fast
 
 cifar10/convert_cifar_data.o: cifar10/convert_cifar_data.cpp.o
 
@@ -334,10 +334,10 @@ help:
 	@echo "... install/local"
 	@echo "... install/strip"
 	@echo "... convert_mnist_data"
-	@echo "... convert_cifar_data"
 	@echo "... rebuild_cache"
 	@echo "... classification"
 	@echo "... convert_mnist_siamese_data"
+	@echo "... convert_cifar_data"
 	@echo "... cifar10/convert_cifar_data.o"
 	@echo "... cifar10/convert_cifar_data.i"
 	@echo "... cifar10/convert_cifar_data.s"

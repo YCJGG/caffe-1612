@@ -78,6 +78,17 @@ edit_cache/fast: edit_cache
 
 .PHONY : edit_cache/fast
 
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: install/local
+
+.PHONY : install/local/fast
+
 # Special rule for the target list_install_components
 list_install_components:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
@@ -110,17 +121,6 @@ install/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
 	/usr/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
-
-# Special rule for the target install/local
-install/local: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
-.PHONY : install/local
-
-# Special rule for the target install/local
-install/local/fast: install/local
-
-.PHONY : install/local/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -155,6 +155,36 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
+tools/CMakeFiles/compute_image_mean.dir/rule:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/compute_image_mean.dir/rule
+.PHONY : tools/CMakeFiles/compute_image_mean.dir/rule
+
+# Convenience name for target.
+compute_image_mean: tools/CMakeFiles/compute_image_mean.dir/rule
+
+.PHONY : compute_image_mean
+
+# fast build rule for target.
+compute_image_mean/fast:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/compute_image_mean.dir/build.make tools/CMakeFiles/compute_image_mean.dir/build
+.PHONY : compute_image_mean/fast
+
+# Convenience name for target.
+tools/CMakeFiles/upgrade_solver_proto_text.dir/rule:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/upgrade_solver_proto_text.dir/rule
+.PHONY : tools/CMakeFiles/upgrade_solver_proto_text.dir/rule
+
+# Convenience name for target.
+upgrade_solver_proto_text: tools/CMakeFiles/upgrade_solver_proto_text.dir/rule
+
+.PHONY : upgrade_solver_proto_text
+
+# fast build rule for target.
+upgrade_solver_proto_text/fast:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/upgrade_solver_proto_text.dir/build.make tools/CMakeFiles/upgrade_solver_proto_text.dir/build
+.PHONY : upgrade_solver_proto_text/fast
+
+# Convenience name for target.
 tools/CMakeFiles/device_query.dir/rule:
 	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/device_query.dir/rule
 .PHONY : tools/CMakeFiles/device_query.dir/rule
@@ -168,36 +198,6 @@ device_query: tools/CMakeFiles/device_query.dir/rule
 device_query/fast:
 	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/device_query.dir/build.make tools/CMakeFiles/device_query.dir/build
 .PHONY : device_query/fast
-
-# Convenience name for target.
-tools/CMakeFiles/train_net.dir/rule:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/train_net.dir/rule
-.PHONY : tools/CMakeFiles/train_net.dir/rule
-
-# Convenience name for target.
-train_net: tools/CMakeFiles/train_net.dir/rule
-
-.PHONY : train_net
-
-# fast build rule for target.
-train_net/fast:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/train_net.dir/build.make tools/CMakeFiles/train_net.dir/build
-.PHONY : train_net/fast
-
-# Convenience name for target.
-tools/CMakeFiles/caffe.bin.dir/rule:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/caffe.bin.dir/rule
-.PHONY : tools/CMakeFiles/caffe.bin.dir/rule
-
-# Convenience name for target.
-caffe.bin: tools/CMakeFiles/caffe.bin.dir/rule
-
-.PHONY : caffe.bin
-
-# fast build rule for target.
-caffe.bin/fast:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/caffe.bin.dir/build.make tools/CMakeFiles/caffe.bin.dir/build
-.PHONY : caffe.bin/fast
 
 # Convenience name for target.
 tools/CMakeFiles/test_net.dir/rule:
@@ -215,64 +215,34 @@ test_net/fast:
 .PHONY : test_net/fast
 
 # Convenience name for target.
-tools/CMakeFiles/convert_imageset.dir/rule:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/convert_imageset.dir/rule
-.PHONY : tools/CMakeFiles/convert_imageset.dir/rule
+tools/CMakeFiles/caffe.bin.dir/rule:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/caffe.bin.dir/rule
+.PHONY : tools/CMakeFiles/caffe.bin.dir/rule
 
 # Convenience name for target.
-convert_imageset: tools/CMakeFiles/convert_imageset.dir/rule
+caffe.bin: tools/CMakeFiles/caffe.bin.dir/rule
 
-.PHONY : convert_imageset
+.PHONY : caffe.bin
 
 # fast build rule for target.
-convert_imageset/fast:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/convert_imageset.dir/build.make tools/CMakeFiles/convert_imageset.dir/build
-.PHONY : convert_imageset/fast
+caffe.bin/fast:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/caffe.bin.dir/build.make tools/CMakeFiles/caffe.bin.dir/build
+.PHONY : caffe.bin/fast
 
 # Convenience name for target.
-tools/CMakeFiles/upgrade_net_proto_binary.dir/rule:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/upgrade_net_proto_binary.dir/rule
-.PHONY : tools/CMakeFiles/upgrade_net_proto_binary.dir/rule
+tools/CMakeFiles/train_net.dir/rule:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/train_net.dir/rule
+.PHONY : tools/CMakeFiles/train_net.dir/rule
 
 # Convenience name for target.
-upgrade_net_proto_binary: tools/CMakeFiles/upgrade_net_proto_binary.dir/rule
+train_net: tools/CMakeFiles/train_net.dir/rule
 
-.PHONY : upgrade_net_proto_binary
+.PHONY : train_net
 
 # fast build rule for target.
-upgrade_net_proto_binary/fast:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/upgrade_net_proto_binary.dir/build.make tools/CMakeFiles/upgrade_net_proto_binary.dir/build
-.PHONY : upgrade_net_proto_binary/fast
-
-# Convenience name for target.
-tools/CMakeFiles/compute_image_mean.dir/rule:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/compute_image_mean.dir/rule
-.PHONY : tools/CMakeFiles/compute_image_mean.dir/rule
-
-# Convenience name for target.
-compute_image_mean: tools/CMakeFiles/compute_image_mean.dir/rule
-
-.PHONY : compute_image_mean
-
-# fast build rule for target.
-compute_image_mean/fast:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/compute_image_mean.dir/build.make tools/CMakeFiles/compute_image_mean.dir/build
-.PHONY : compute_image_mean/fast
-
-# Convenience name for target.
-tools/CMakeFiles/finetune_net.dir/rule:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/finetune_net.dir/rule
-.PHONY : tools/CMakeFiles/finetune_net.dir/rule
-
-# Convenience name for target.
-finetune_net: tools/CMakeFiles/finetune_net.dir/rule
-
-.PHONY : finetune_net
-
-# fast build rule for target.
-finetune_net/fast:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/finetune_net.dir/build.make tools/CMakeFiles/finetune_net.dir/build
-.PHONY : finetune_net/fast
+train_net/fast:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/train_net.dir/build.make tools/CMakeFiles/train_net.dir/build
+.PHONY : train_net/fast
 
 # Convenience name for target.
 tools/CMakeFiles/net_speed_benchmark.dir/rule:
@@ -290,19 +260,19 @@ net_speed_benchmark/fast:
 .PHONY : net_speed_benchmark/fast
 
 # Convenience name for target.
-tools/CMakeFiles/extract_features.dir/rule:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/extract_features.dir/rule
-.PHONY : tools/CMakeFiles/extract_features.dir/rule
+tools/CMakeFiles/finetune_net.dir/rule:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/finetune_net.dir/rule
+.PHONY : tools/CMakeFiles/finetune_net.dir/rule
 
 # Convenience name for target.
-extract_features: tools/CMakeFiles/extract_features.dir/rule
+finetune_net: tools/CMakeFiles/finetune_net.dir/rule
 
-.PHONY : extract_features
+.PHONY : finetune_net
 
 # fast build rule for target.
-extract_features/fast:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/extract_features.dir/build.make tools/CMakeFiles/extract_features.dir/build
-.PHONY : extract_features/fast
+finetune_net/fast:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/finetune_net.dir/build.make tools/CMakeFiles/finetune_net.dir/build
+.PHONY : finetune_net/fast
 
 # Convenience name for target.
 tools/CMakeFiles/upgrade_net_proto_text.dir/rule:
@@ -320,19 +290,49 @@ upgrade_net_proto_text/fast:
 .PHONY : upgrade_net_proto_text/fast
 
 # Convenience name for target.
-tools/CMakeFiles/upgrade_solver_proto_text.dir/rule:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/upgrade_solver_proto_text.dir/rule
-.PHONY : tools/CMakeFiles/upgrade_solver_proto_text.dir/rule
+tools/CMakeFiles/extract_features.dir/rule:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/extract_features.dir/rule
+.PHONY : tools/CMakeFiles/extract_features.dir/rule
 
 # Convenience name for target.
-upgrade_solver_proto_text: tools/CMakeFiles/upgrade_solver_proto_text.dir/rule
+extract_features: tools/CMakeFiles/extract_features.dir/rule
 
-.PHONY : upgrade_solver_proto_text
+.PHONY : extract_features
 
 # fast build rule for target.
-upgrade_solver_proto_text/fast:
-	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/upgrade_solver_proto_text.dir/build.make tools/CMakeFiles/upgrade_solver_proto_text.dir/build
-.PHONY : upgrade_solver_proto_text/fast
+extract_features/fast:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/extract_features.dir/build.make tools/CMakeFiles/extract_features.dir/build
+.PHONY : extract_features/fast
+
+# Convenience name for target.
+tools/CMakeFiles/upgrade_net_proto_binary.dir/rule:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/upgrade_net_proto_binary.dir/rule
+.PHONY : tools/CMakeFiles/upgrade_net_proto_binary.dir/rule
+
+# Convenience name for target.
+upgrade_net_proto_binary: tools/CMakeFiles/upgrade_net_proto_binary.dir/rule
+
+.PHONY : upgrade_net_proto_binary
+
+# fast build rule for target.
+upgrade_net_proto_binary/fast:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/upgrade_net_proto_binary.dir/build.make tools/CMakeFiles/upgrade_net_proto_binary.dir/build
+.PHONY : upgrade_net_proto_binary/fast
+
+# Convenience name for target.
+tools/CMakeFiles/convert_imageset.dir/rule:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f CMakeFiles/Makefile2 tools/CMakeFiles/convert_imageset.dir/rule
+.PHONY : tools/CMakeFiles/convert_imageset.dir/rule
+
+# Convenience name for target.
+convert_imageset: tools/CMakeFiles/convert_imageset.dir/rule
+
+.PHONY : convert_imageset
+
+# fast build rule for target.
+convert_imageset/fast:
+	cd /home/kfxw/Development/caffe-1612 && $(MAKE) -f tools/CMakeFiles/convert_imageset.dir/build.make tools/CMakeFiles/convert_imageset.dir/build
+.PHONY : convert_imageset/fast
 
 caffe.o: caffe.cpp.o
 
@@ -666,22 +666,22 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
+	@echo "... compute_image_mean"
+	@echo "... install/local"
+	@echo "... upgrade_solver_proto_text"
 	@echo "... list_install_components"
 	@echo "... install/strip"
 	@echo "... device_query"
-	@echo "... train_net"
-	@echo "... caffe.bin"
 	@echo "... install"
 	@echo "... test_net"
-	@echo "... convert_imageset"
-	@echo "... upgrade_net_proto_binary"
-	@echo "... compute_image_mean"
-	@echo "... finetune_net"
+	@echo "... caffe.bin"
+	@echo "... train_net"
 	@echo "... net_speed_benchmark"
-	@echo "... extract_features"
+	@echo "... finetune_net"
 	@echo "... upgrade_net_proto_text"
-	@echo "... install/local"
-	@echo "... upgrade_solver_proto_text"
+	@echo "... extract_features"
+	@echo "... upgrade_net_proto_binary"
+	@echo "... convert_imageset"
 	@echo "... caffe.o"
 	@echo "... caffe.i"
 	@echo "... caffe.s"
