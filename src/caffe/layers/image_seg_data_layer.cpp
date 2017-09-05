@@ -97,6 +97,17 @@ ImageSegDataLayer<Dtype>::~ImageSegDataLayer<Dtype>() {
 template <typename Dtype>
 void ImageSegDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
+  if (top.size() >= 3) {
+    this->output_data_dim_ = true;
+  } else {
+    this->output_data_dim_ = false;
+  }
+  if (top.size() == 4) {
+    this->output_additional_channel_ = true;
+  } else {
+    this->output_additional_channel_ = false;
+  }
+
   const int new_height = this->layer_param_.image_data_param().new_height();
   const int new_width  = this->layer_param_.image_data_param().new_width();
   const bool is_color  = this->layer_param_.image_data_param().is_color();
@@ -125,9 +136,10 @@ void ImageSegDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom
     if (label_type != 0) { //ImageDataParameter_LabelType_NONE = 0
       iss >> segfn;
     }
-    if (this->output_additional_channel_) { //top.size() == 4
+    if (this->output_additional_channel_) { //this->output_additional_channel_ == True
       iss >> addfn;
     }
+
     std::vector<string> line_;
     line_.push_back(imgfn);
     line_.push_back(segfn);

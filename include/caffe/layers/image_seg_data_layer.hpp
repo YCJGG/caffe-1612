@@ -74,7 +74,7 @@ class ImageSegDataLayer : public ImageDimPrefetchingDataLayer<Dtype> {
 
   virtual inline const char* type() const { return "ImageSegData"; }
   virtual inline int ExactNumBottomBlobs() const { return 0; }
-  virtual inline int ExactNumTopBlobs() const { return 3; }
+  virtual inline int ExactNumTopBlobs() const { return 4; }
   virtual inline bool AutoTopBlobs() const { return true; }
 
  protected:
