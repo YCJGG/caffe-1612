@@ -66,6 +66,7 @@ void ImageDimPrefetchingDataLayer<Dtype>::Forward_cpu(
   caffe_copy(this->prefetch_data_.count(), this->prefetch_data_.cpu_data(),
              top[0]->mutable_cpu_data());
   DLOG(INFO) << "Prefetch copied";
+
   if (this->output_labels_) {
     caffe_copy(this->prefetch_label_.count(), this->prefetch_label_.cpu_data(),
                top[1]->mutable_cpu_data());
@@ -349,9 +350,9 @@ void ImageSegDataLayer<Dtype>::InternalThreadEntry() {
 	   ignore_label);
     }
     else {
-    this->data_transformer_->TransformImgAndSeg(cv_img_seg, 
-	 &(this->transformed_data_), &(this->transformed_label_),
-	 ignore_label);
+      this->data_transformer_->TransformImgAndSeg(cv_img_seg, 
+	   &(this->transformed_data_), &(this->transformed_label_),
+	   ignore_label);
     }
 
     trans_time += timer.MicroSeconds();

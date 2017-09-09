@@ -44,8 +44,8 @@ class ImageDimPrefetchingDataLayer : public BasePrefetchingDataLayer<Dtype> {
 
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
-  //virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
-   //   const vector<Blob<Dtype>*>& top);
+  virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top) {Forward_cpu(bottom, top);};
 
   // The thread's function
   virtual void InternalThreadEntry() {}
@@ -74,7 +74,7 @@ class ImageSegDataLayer : public ImageDimPrefetchingDataLayer<Dtype> {
 
   virtual inline const char* type() const { return "ImageSegData"; }
   virtual inline int ExactNumBottomBlobs() const { return 0; }
-  virtual inline int ExactNumTopBlobs() const { return 4; }
+  virtual inline int MaxNumTopBlobs() const { return 4; }
   virtual inline bool AutoTopBlobs() const { return true; }
 
  protected:
