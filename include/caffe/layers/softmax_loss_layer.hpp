@@ -2,6 +2,8 @@
 #define CAFFE_SOFTMAX_WITH_LOSS_LAYER_HPP_
 
 #include <vector>
+#include <algorithm>
+#include <numeric>
 
 #include "caffe/blob.hpp"
 #include "caffe/layer.hpp"
@@ -123,6 +125,12 @@ class SoftmaxWithLossLayer : public LossLayer<Dtype> {
   LossParameter_NormalizationMode normalization_;
 
   int softmax_axis_, outer_num_, inner_num_;
+
+  // used for bootstrapping - kfxw@2017-09-26
+  vector<int> find_unbootstrapped_idx(Dtype* dense_loss, int array_size, int topK);
+  void perform_bootstrap_on_loss(Dtype* dense_loss, vector<int>un_boot_idx);
+  void perform_bootstrap_on_diff(Dtype* diff, vector<int>un_boot_idx, int label_num, int inner_num);
+  vector<vector<int> > unbootstrapped_idx;
 };
 
 }  // namespace caffe

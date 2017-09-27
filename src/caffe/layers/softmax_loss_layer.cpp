@@ -33,6 +33,11 @@ void SoftmaxWithLossLayer<Dtype>::LayerSetUp(
   } else {
     normalization_ = this->layer_param_.loss_param().normalization();
   }
+
+  // for BOOTSTRAPPING, init bootstrap idx vector - kfxw@2017-09-26
+  if (this->layer_param_.loss_param().bootstrapping()) {
+    this->unbootstrapped_idx = vector<vector<int> >(bottom[0]->num());
+  }
 }
 
 template <typename Dtype>
@@ -77,6 +82,13 @@ Dtype SoftmaxWithLossLayer<Dtype>::get_normalizer(
     case LossParameter_NormalizationMode_NONE:
       normalizer = Dtype(1);
       break;
+    // add new normalizer: BOOTSTRAPPING - kfxw@2017-09-26
+    // equals to 'top K' numbers
+    case LossParameter_NormalizationMode_BOOTSTRAP:
+      if (!this->layer_param_.loss_param().bootstrapping())
+	LOG(FATAL) << "Normalization Mode BOOTSTRAP must be used with bootstrapping softmax loss.";
+      normalizer = Dtype(outer_num_ * this->layer_param_.loss_param().bootstrapping_top_k());
+      break;
     default:
       LOG(FATAL) << "Unknown normalization mode: "
           << LossParameter_NormalizationMode_Name(normalization_mode);
@@ -84,6 +96,38 @@ Dtype SoftmaxWithLossLayer<Dtype>::get_normalizer(
   // Some users will have no labels for some examples in order to 'turn off' a
   // particular loss in a multi-task setup. The max prevents NaNs in that case.
   return std::max(Dtype(1.0), normalizer);
+}
+
+// used for bootstrapping - kfxw@2017-09-26
+template <typename Dtype>
+vector<int> SoftmaxWithLossLayer<Dtype>::find_unbootstrapped_idx(Dtype* dense_loss, int array_size, int topK) {
+	// perform argsort, descending
+	vector<size_t> idx(array_size);
+	std::iota(idx.begin(), idx.end(), 0);
+	std::sort(idx.begin(), idx.end(),
+		 [&dense_loss](size_t i1, size_t i2) {return dense_loss[i1] > dense_loss[i2];});	// lambda function
+	// take first K idx
+	vector<int> res(array_size-topK);
+	std::copy(idx.begin()+topK, idx.end(), res.begin());
+	return res;
+}
+
+// used for bootstrapping - kfxw@2017-09-26
+template <typename Dtype>
+void SoftmaxWithLossLayer<Dtype>::perform_bootstrap_on_loss(Dtype* dense_loss, vector<int>un_boot_idx) {
+	for (vector<int>::size_type i = 0; i != un_boot_idx.size(); ++i) {
+		dense_loss[un_boot_idx[i]] = 0;
+	}
+}
+
+// used for bootstrapping - kfxw@2017-09-26
+template <typename Dtype>
+void SoftmaxWithLossLayer<Dtype>::perform_bootstrap_on_diff(Dtype* diff, vector<int>un_boot_idx, int label_num, int inner_num) {
+	for (vector<int>::size_type i = 0; i != un_boot_idx.size(); ++i) {
+		for (int j = 0; j < label_num; j++) {
+			diff[j*inner_num + un_boot_idx[i]] = 0;
+		}
+	}
 }
 
 template <typename Dtype>
@@ -111,17 +155,30 @@ void SoftmaxWithLossLayer<Dtype>::Forward_cpu(
       ++count;
     }
   }
-  // loss normalization
-  Dtype normalizer = get_normalizer(normalization_, count);
-  caffe_scal<Dtype>(dense_loss.count(), 1.0/normalizer, p_dense_loss);
-  Dtype loss = caffe_cpu_asum<Dtype>(dense_loss.count(), p_dense_loss);
-  top[0]->mutable_cpu_data()[0] = loss / normalizer;
 
+  // output loss heat map
   if (top.size() == 2) {
     // original: top[1]->ShareData(prob_);
     // now: output dense loss heat map -- my-dev feature
     caffe_copy(dense_loss.count(), p_dense_loss, top[1]->mutable_cpu_data());
   }
+
+  // if use BOOTSTRAPPING mode - kfxw@2017-09-26
+  // 1. sort dense loss map and find pix idx with top K losses
+  if (this->layer_param_.loss_param().bootstrapping()) {
+    for (int n = 0; n < bottom[0]->num(); n++) {
+      p_dense_loss = dense_loss.mutable_cpu_data() + n*inner_num_;
+      unbootstrapped_idx[n] = this->find_unbootstrapped_idx(p_dense_loss, inner_num_, this->layer_param_.loss_param().bootstrapping_top_k());
+      // 2. modify dense loss map: reserve loss value on the K idx and set to 0 on other pix
+      this->perform_bootstrap_on_loss(p_dense_loss, unbootstrapped_idx[n]);
+    }
+  }
+
+  // loss normalization
+  Dtype normalizer = get_normalizer(normalization_, count);
+  caffe_scal<Dtype>(dense_loss.count(), 1.0/normalizer, p_dense_loss);
+  Dtype loss = caffe_cpu_asum<Dtype>(dense_loss.count(), p_dense_loss);
+  top[0]->mutable_cpu_data()[0] = loss / normalizer;
 }
 
 template <typename Dtype>
@@ -149,6 +206,11 @@ void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
           bottom_diff[i * dim + label_value * inner_num_ + j] -= 1;
           ++count;
         }
+      }
+      if (this->layer_param_.loss_param().bootstrapping()) {
+  	// if use BOOTSTRAPPING mode - kfxw@2017-09-26
+  	// modify bottom_diff: reserve diff value on the K idx and set to 0 on other pix
+        this->perform_bootstrap_on_diff(bottom_diff+i*dim, unbootstrapped_idx[i], bottom[0]->channels(), inner_num_);
       }
     }
     // Scale gradient

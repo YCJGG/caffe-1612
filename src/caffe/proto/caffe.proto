@@ -559,6 +559,8 @@ message LossParameter {
     BATCH_SIZE = 2;
     // Do not normalize the loss.
     NONE = 3;
+    // Do bootstrap - for bootstrap softmax loss kfxw@2017-09-26
+    BOOTSTRAP = 4;
   }
   // For historical reasons, the default normalization for
   // SigmoidCrossEntropyLoss is BATCH_SIZE and *not* VALID.
@@ -567,6 +569,10 @@ message LossParameter {
   // is not specified, then setting this to false will be equivalent to
   // normalization = BATCH_SIZE to be consistent with previous behavior.
   optional bool normalize = 2;
+  // Used for bootstrap softmax loss kfxw@2017-09-26
+  // TopK means the number of diff to be reserved
+  optional bool bootstrapping = 4 [default = false];
+  optional uint32 bootstrapping_top_k = 5 [default = 1];
 }
 
 // Messages that store parameters used by individual layer types follow, in

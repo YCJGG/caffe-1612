@@ -49,8 +49,7 @@ void SoftmaxWithLossLayer<Dtype>::Forward_gpu(
   SoftmaxLossForwardGPU<Dtype><<<CAFFE_GET_BLOCKS(nthreads),
       CAFFE_CUDA_NUM_THREADS>>>(nthreads, prob_data, label, loss_data,
       outer_num_, dim, inner_num_, has_ignore_label_, ignore_label_, counts);
-  Dtype loss;
-  caffe_gpu_asum(nthreads, loss_data, &loss);
+
   Dtype valid_count = -1;
   // Only launch another CUDA kernel if we actually need the count of valid
   // outputs.
@@ -59,12 +58,28 @@ void SoftmaxWithLossLayer<Dtype>::Forward_gpu(
     caffe_gpu_asum(nthreads, counts, &valid_count);
   }
   Dtype normalizer = get_normalizer(normalization_, valid_count);
-  top[0]->mutable_cpu_data()[0] = loss / normalizer;
+  // output loss heat map
   if (top.size() == 2) {
     // original: top[1]->ShareData(prob_);
     // now: output dense loss heat map
     caffe_gpu_scale<Dtype>(bottom[1]->count(), 1.0/normalizer, loss_data, top[1]->mutable_gpu_data());
   }
+
+  // if use BOOTSTRAPPING mode - kfxw@2017-09-26
+  // 1. sort dense loss map and find pix idx with top K losses
+  Dtype* loss_data_cpu = bottom[0]->mutable_cpu_diff();
+  if (this->layer_param_.loss_param().bootstrapping()) {
+    for (int n = 0; n < bottom[0]->num(); n++) {
+      Dtype* p_dense_loss = loss_data_cpu + n*inner_num_;
+      unbootstrapped_idx[n] = this->find_unbootstrapped_idx(p_dense_loss, inner_num_, this->layer_param_.loss_param().bootstrapping_top_k());
+      // 2. modify dense loss map: reserve loss value on the K idx and set to 0 on other pix
+      this->perform_bootstrap_on_loss(loss_data_cpu, unbootstrapped_idx[n]);
+    }
+  }
+
+  Dtype loss;
+  caffe_gpu_asum(nthreads, bottom[0]->mutable_gpu_diff(), &loss);
+  top[0]->mutable_cpu_data()[0] = loss / normalizer;
 }
 
 template <typename Dtype>
@@ -114,11 +129,19 @@ void SoftmaxWithLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         CAFFE_CUDA_NUM_THREADS>>>(nthreads, top_data, label, bottom_diff,
         outer_num_, dim, inner_num_, has_ignore_label_, ignore_label_, counts);
 
+    // if use BOOTSTRAPPING mode - kfxw@2017-09-26
+    if (this->layer_param_.loss_param().bootstrapping()) {
+      Dtype* bottom_diff_cpu = bottom[0]->mutable_cpu_diff();
+      for (int n = 0; n < bottom[0]->num(); n++) {
+        // modify bottom_diff: reserve diff value on the K idx and set to 0 on other pix
+        this->perform_bootstrap_on_diff(bottom_diff_cpu+n*dim, unbootstrapped_idx[n], bottom[0]->channels(), inner_num_);
+      }
+    }
+
     Dtype valid_count = -1;
     // Only launch another CUDA kernel if we actually need the count of valid
     // outputs.
-    if (normalization_ == LossParameter_NormalizationMode_VALID &&
-        has_ignore_label_) {
+    if (normalization_ == LossParameter_NormalizationMode_VALID && has_ignore_label_) {
       caffe_gpu_asum(nthreads, counts, &valid_count);
     }
     const Dtype loss_weight = top[0]->cpu_diff()[0] /

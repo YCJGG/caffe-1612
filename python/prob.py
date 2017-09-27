@@ -36,9 +36,9 @@ class ProbLayer(caffe.Layer):
 	plt.subplot(1,3,1)
 	plt.imshow(bottom[0].data[0,0,:,:])
 	plt.subplot(1,3,2)
-	plt.imshow(bottom[1].data[0].argmax(axis=0))
-	#plt.subplot(1,3,3)
-	#plt.imshow(bottom[2].data[0,0,:,:])
+	plt.imshow(bottom[1].data[0,0,:,:])
+	plt.subplot(1,3,3)
+	plt.imshow(bottom[2].data[0,0,:,:])
 	plt.subplots_adjust(left=0.1, bottom=0.1, right=0.9, top=0.9,hspace=0, wspace=0.05)
 	plt.show()
 	#print '!!!!!!!!!!!!!!!!!!!!!!!'

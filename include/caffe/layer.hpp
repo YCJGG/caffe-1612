@@ -389,6 +389,21 @@ class Layer {
   inline void SetLossWeights(const vector<Blob<Dtype>*>& top) {
     const int num_loss_weights = layer_param_.loss_weight_size();
     if (num_loss_weights) {
+      for (int top_id = 0; top_id < top.size(); ++top_id) {
+        const Dtype loss_weight = layer_param_.loss_weight(0);
+        if (loss_weight == Dtype(0)) { continue; }
+        this->set_loss(top_id, loss_weight);
+        const int count = top[top_id]->count();
+        Dtype* loss_multiplier = top[top_id]->mutable_cpu_diff();
+        caffe_set(count, loss_weight, loss_multiplier);
+      }
+    }
+  }
+
+/** BAK    kfxw@2017-09-27
+  inline void SetLossWeights(const vector<Blob<Dtype>*>& top) {
+    const int num_loss_weights = layer_param_.loss_weight_size();
+    if (num_loss_weights) {
       CHECK_EQ(top.size(), num_loss_weights) << "loss_weight must be "
           "unspecified or specified once per top blob.";
       for (int top_id = 0; top_id < top.size(); ++top_id) {
@@ -401,6 +416,7 @@ class Layer {
       }
     }
   }
+*/
 
  private:
   DISABLE_COPY_AND_ASSIGN(Layer);

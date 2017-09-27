@@ -156,6 +156,8 @@
     /usr/include/c++/5/bits/range_access.h \
     /usr/include/c++/5/bits/vector.tcc \
     ./include/caffe/layers/softmax_loss_layer.hpp \
+    /usr/include/c++/5/numeric \
+    /usr/include/c++/5/bits/stl_numeric.h \
     ./include/caffe/blob.hpp \
     /usr/include/c++/5/string \
     /usr/include/c++/5/bits/stringfwd.h \

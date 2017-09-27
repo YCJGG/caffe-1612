@@ -283,11 +283,12 @@ enum LossParameter_NormalizationMode {
   LossParameter_NormalizationMode_FULL = 0,
   LossParameter_NormalizationMode_VALID = 1,
   LossParameter_NormalizationMode_BATCH_SIZE = 2,
-  LossParameter_NormalizationMode_NONE = 3
+  LossParameter_NormalizationMode_NONE = 3,
+  LossParameter_NormalizationMode_BOOTSTRAP = 4
 };
 bool LossParameter_NormalizationMode_IsValid(int value);
 const LossParameter_NormalizationMode LossParameter_NormalizationMode_NormalizationMode_MIN = LossParameter_NormalizationMode_FULL;
-const LossParameter_NormalizationMode LossParameter_NormalizationMode_NormalizationMode_MAX = LossParameter_NormalizationMode_NONE;
+const LossParameter_NormalizationMode LossParameter_NormalizationMode_NormalizationMode_MAX = LossParameter_NormalizationMode_BOOTSTRAP;
 const int LossParameter_NormalizationMode_NormalizationMode_ARRAYSIZE = LossParameter_NormalizationMode_NormalizationMode_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* LossParameter_NormalizationMode_descriptor();
@@ -4785,6 +4786,7 @@ class LossParameter : public ::google::protobuf::Message {
   static const NormalizationMode VALID = LossParameter_NormalizationMode_VALID;
   static const NormalizationMode BATCH_SIZE = LossParameter_NormalizationMode_BATCH_SIZE;
   static const NormalizationMode NONE = LossParameter_NormalizationMode_NONE;
+  static const NormalizationMode BOOTSTRAP = LossParameter_NormalizationMode_BOOTSTRAP;
   static inline bool NormalizationMode_IsValid(int value) {
     return LossParameter_NormalizationMode_IsValid(value);
   }
@@ -4829,6 +4831,20 @@ class LossParameter : public ::google::protobuf::Message {
   inline bool normalize() const;
   inline void set_normalize(bool value);
 
+  // optional bool bootstrapping = 4 [default = false];
+  inline bool has_bootstrapping() const;
+  inline void clear_bootstrapping();
+  static const int kBootstrappingFieldNumber = 4;
+  inline bool bootstrapping() const;
+  inline void set_bootstrapping(bool value);
+
+  // optional uint32 bootstrapping_top_k = 5 [default = 1];
+  inline bool has_bootstrapping_top_k() const;
+  inline void clear_bootstrapping_top_k();
+  static const int kBootstrappingTopKFieldNumber = 5;
+  inline ::google::protobuf::uint32 bootstrapping_top_k() const;
+  inline void set_bootstrapping_top_k(::google::protobuf::uint32 value);
+
   // @@protoc_insertion_point(class_scope:caffe.LossParameter)
  private:
   inline void set_has_ignore_label();
@@ -4837,6 +4853,10 @@ class LossParameter : public ::google::protobuf::Message {
   inline void clear_has_normalization();
   inline void set_has_normalize();
   inline void clear_has_normalize();
+  inline void set_has_bootstrapping();
+  inline void clear_has_bootstrapping();
+  inline void set_has_bootstrapping_top_k();
+  inline void clear_has_bootstrapping_top_k();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -4845,6 +4865,8 @@ class LossParameter : public ::google::protobuf::Message {
   ::google::protobuf::int32 ignore_label_;
   int normalization_;
   bool normalize_;
+  bool bootstrapping_;
+  ::google::protobuf::uint32 bootstrapping_top_k_;
   friend void  protobuf_AddDesc_caffe_2eproto();
   friend void protobuf_AssignDesc_caffe_2eproto();
   friend void protobuf_ShutdownFile_caffe_2eproto();
@@ -18779,6 +18801,54 @@ inline void LossParameter::set_normalize(bool value) {
   set_has_normalize();
   normalize_ = value;
   // @@protoc_insertion_point(field_set:caffe.LossParameter.normalize)
+}
+
+// optional bool bootstrapping = 4 [default = false];
+inline bool LossParameter::has_bootstrapping() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void LossParameter::set_has_bootstrapping() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void LossParameter::clear_has_bootstrapping() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void LossParameter::clear_bootstrapping() {
+  bootstrapping_ = false;
+  clear_has_bootstrapping();
+}
+inline bool LossParameter::bootstrapping() const {
+  // @@protoc_insertion_point(field_get:caffe.LossParameter.bootstrapping)
+  return bootstrapping_;
+}
+inline void LossParameter::set_bootstrapping(bool value) {
+  set_has_bootstrapping();
+  bootstrapping_ = value;
+  // @@protoc_insertion_point(field_set:caffe.LossParameter.bootstrapping)
+}
+
+// optional uint32 bootstrapping_top_k = 5 [default = 1];
+inline bool LossParameter::has_bootstrapping_top_k() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void LossParameter::set_has_bootstrapping_top_k() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void LossParameter::clear_has_bootstrapping_top_k() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void LossParameter::clear_bootstrapping_top_k() {
+  bootstrapping_top_k_ = 1u;
+  clear_has_bootstrapping_top_k();
+}
+inline ::google::protobuf::uint32 LossParameter::bootstrapping_top_k() const {
+  // @@protoc_insertion_point(field_get:caffe.LossParameter.bootstrapping_top_k)
+  return bootstrapping_top_k_;
+}
+inline void LossParameter::set_bootstrapping_top_k(::google::protobuf::uint32 value) {
+  set_has_bootstrapping_top_k();
+  bootstrapping_top_k_ = value;
+  // @@protoc_insertion_point(field_set:caffe.LossParameter.bootstrapping_top_k)
 }
 
 // -------------------------------------------------------------------
