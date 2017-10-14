@@ -99,6 +99,18 @@ void Blob<Dtype>::set_cpu_data(Dtype* data) {
 }
 
 template <typename Dtype>
+void Blob<Dtype>::set_cpu_diff(Dtype* diff) {
+  CHECK(diff);
+  diff_->set_cpu_data(diff);
+}
+
+template <typename Dtype>
+void Blob<Dtype>::set_gpu_diff(Dtype* diff) {
+  CHECK(diff);
+  diff_->set_gpu_data(diff);
+}
+
+template <typename Dtype>
 const Dtype* Blob<Dtype>::gpu_data() const {
   CHECK(data_);
   return (const Dtype*)data_->gpu_data();
