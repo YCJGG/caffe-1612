@@ -45,16 +45,16 @@ __global__  void bilinearForwardGPU(const int nthreads,
 		int rw = index % output_size;
 		int rh = (index / output_size) % output_size;
 		int c = (index / output_size / output_size) % input_channels;
-		int n = index / output_size / output_size / input_channels;
+		int num = index / output_size / output_size / input_channels;
 		// indexing and sampling
-		int h = int(rh / resize_factor);
-		int w = int(rw / resize_factor);
-		h = min(h, input_size);
-		w = min(w, input_size);
-		const Dtype* bottom_data_channel = bottom_data + (n * input_channels + c) * input_size * input_size;
+		float h = rh / resize_factor;
+		float w = rw / resize_factor;
+		h = min(h, float(input_size));
+		w = min(w, float(input_size));
+		const Dtype* bottom_data_channel = bottom_data + (num * input_channels + c) * input_size * input_size;
 		top_data[index] = 0;		// DO NOT forget to reset before accumulation
-		for (int n = max(static_cast<int>(h-1) + 1, 0); n < min(h + 1, input_size); n++) {
-		    for (int m = max(static_cast<int>(w-1) + 1, 0); m < min(w + 1, input_size); m++) {
+		for (int n = max(static_cast<int>(h-1) + 1, 0); n < min(h + 1, float(input_size)); n++) {
+		    for (int m = max(static_cast<int>(w-1) + 1, 0); m < min(w + 1, float(input_size)); m++) {
 			top_data[index] += bottom_data_channel[n * input_size + m] * (1 - abs(w - m)) * (1 - abs(h - n));
 		    }
 		}
@@ -114,7 +114,7 @@ __global__ void bilinearBackwardGPU(const int nthreads,
 	const int input_channels, const int input_size, const int output_size, const float resize_factor,
 	Dtype* bottom_diff, const Dtype* top_diff) {
 
-	CUDA_KERNEL_LOOP(index, nthreads) {
+	/*CUDA_KERNEL_LOOP(index, nthreads) {
 		// resume channel idx
 		int c = index % input_channels;
 		int n = index / input_channels;
@@ -158,31 +158,31 @@ __global__ void bilinearBackwardGPU(const int nthreads,
 		    }
 		}
 		// the normalization is outside this function
-	}
-	/*CUDA_KERNEL_LOOP(index, nthreads) {
+	}*/
+	CUDA_KERNEL_LOOP(index, nthreads) {
 		// resume channel idx and pixel idx
 		int w = index % input_size;
 		int h = (index / input_size) % input_size;
 		int c = (index / input_size / input_size) % input_channels;
 		int n = index / input_size / input_size / input_channels;
 		// indexing and sampling
-		int hstart = int((h - 1) * resize_factor) + 1;
-		int wstart = int((w - 1) * resize_factor) + 1;
-		int hend = int((h + 1) * resize_factor);
-		int wend = int((w + 1) * resize_factor);
-		hstart = max(hstart, 0);
-		wstart = max(wstart, 0);
-		hend = min(hend, output_size - 1);
-		wend = min(wend, output_size - 1);
-		top_diff += (n*input_channels + c) * output_size * output_size;
+		float hstart = (h - 1) * resize_factor + 1;
+		float wstart = (w - 1) * resize_factor + 1;
+		float hend = (h + 1) * resize_factor;
+		float wend = (w + 1) * resize_factor;
+		hstart = max(hstart, 0.);
+		wstart = max(wstart, 0.);
+		hend = min(hend, float(output_size));
+		wend = min(wend, float(output_size));
+		const Dtype* top_diff_channel = top_diff + (n*input_channels + c) * output_size * output_size;
 		for (int rh = hstart; rh < hend; ++rh) {
 		    for (int rw = wstart; rw < wend; ++rw) {
-			bottom_diff[index] += top_diff[rh * output_size + rw]
+			bottom_diff[index] += top_diff_channel[rh * output_size + rw]
                                           * (1 - abs((rw / resize_factor) - w)) * (1 - abs((rh / resize_factor) - h));
 		    }
 		}
 		bottom_diff[index] /= (hend-hstart) * (wend-wstart);
-	}*/
+	}
 }
 
 template <typename Dtype>
@@ -194,7 +194,7 @@ void ResizeLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
   const int bottom_count = bottom[0]->count();
   caffe_gpu_set(bottom[0]->count(), Dtype(0.), bottom_diff);
-  const int top_count = top[0]->count();
+  //const int top_count = top[0]->count();
   int nthreads = top[0]->num() * top[0]->channels();
 
   // data gradient
@@ -208,10 +208,10 @@ void ResizeLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 	case ResizeParameter_InterpolationType_BILINEAR:
 		// parallel at channel level
 		bilinearBackwardGPU<Dtype><<<CAFFE_GET_BLOCKS(nthreads), CAFFE_CUDA_NUM_THREADS>>>
-			(nthreads, bottom[0]->channels(), this->input_size_, this->output_size_,
+			(bottom_count, bottom[0]->channels(), this->input_size_, this->output_size_,
 			 this->resize_factor_, bottom_diff, top_diff);
 		// normalize
-		caffe_gpu_scal(bottom_count, this->resize_factor_>1 ? 1/this->resize_factor_/this->resize_factor_ : 1, bottom_diff);
+		//caffe_gpu_scal(bottom_count, this->resize_factor_>1 ? 1/this->resize_factor_/this->resize_factor_ : 1, bottom_diff);
 		break;
 	default:
 		LOG(FATAL) << "Unknown interpolation type.";
