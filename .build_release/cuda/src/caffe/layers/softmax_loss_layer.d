@@ -437,7 +437,7 @@
     ./include/caffe/layer_factory.hpp \
     ./include/caffe/util/math_functions.hpp \
     ./include/caffe/util/mkl_alternate.hpp \
-    /usr/include/cblas.h \
-    /usr/include/cblas_mangling.h \
+    /opt/OpenBLAS/include/cblas.h \
+    /opt/OpenBLAS/include/openblas_config.h \
     ./include/caffe/layers/loss_layer.hpp \
     ./include/caffe/layers/softmax_layer.hpp
