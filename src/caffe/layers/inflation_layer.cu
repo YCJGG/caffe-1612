@@ -155,7 +155,7 @@ void InflationLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     
     if (iter_counter_ >= this->layer_param().inflation_factor_param().start_iter()) {
     
-	if (iter_counter_ % 4 == 0)    *factor_diff = 0;
+	if (iter_counter_ % 1 == 0)    *factor_diff = 0;
 
         // compute diff for factor_
         // dL/d(factor) = sum(top.diff[i,j] * d(top.data[i,j])/d(factor))
@@ -177,13 +177,13 @@ void InflationLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 	    *factor_diff = max(min(*factor_diff, MARGIN), -MARGIN);
 	}
 
-        LOG(INFO) << " No." << iter_counter_ % 4
+        LOG(INFO) << " No." << iter_counter_ % 1
                   << "  factor: " << *factor_
                   << "  (" << height << " -> " << top_height << ")"
                   << "  f_diff: " << sum_dLoss_dfactor / num / height / width
 		  << "  diff: " << tmp
 		  << " Total diff: " << *factor_diff;
-	if (iter_counter_ % 4 == 3)    LOG(INFO) << " Total diff: " << *factor_diff;
+	//if (iter_counter_ % 4 == 3)    LOG(INFO) << " Total diff: " << *factor_diff;
 
     } else {
         *factor_diff = 0;

@@ -12,6 +12,9 @@
 #include "caffe/util/math_functions.hpp"
 #include "caffe/layers/resize_layer.hpp"
 
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 namespace caffe {
 
 template <typename Dtype>
@@ -49,12 +52,12 @@ __global__  void bilinearForwardGPU(const int nthreads,
 		// indexing and sampling
 		float h = rh / resize_factor;
 		float w = rw / resize_factor;
-		h = min(h, float(input_size));
-		w = min(w, float(input_size));
+		//h = min(h, float(input_size));
+		//w = min(w, float(input_size));
 		const Dtype* bottom_data_channel = bottom_data + (num * input_channels + c) * input_size * input_size;
 		top_data[index] = 0;		// DO NOT forget to reset before accumulation
-		for (int n = max(static_cast<int>(h-1) + 1, 0); n < min(h + 1, float(input_size)); n++) {
-		    for (int m = max(static_cast<int>(w-1) + 1, 0); m < min(w + 1, float(input_size)); m++) {
+		for (int n = MAX(floor(h-1) + 1, 0); n < MIN(h + 1, input_size); n++) {
+		    for (int m = MAX(floor(w-1) + 1, 0); m < MIN(w + 1, input_size); m++) {
 			top_data[index] += bottom_data_channel[n * input_size + m] * (1 - abs(w - m)) * (1 - abs(h - n));
 		    }
 		}
@@ -175,13 +178,14 @@ __global__ void bilinearBackwardGPU(const int nthreads,
 		hend = min(hend, float(output_size));
 		wend = min(wend, float(output_size));
 		const Dtype* top_diff_channel = top_diff + (n*input_channels + c) * output_size * output_size;
+		bottom_diff[index] = 0;
 		for (int rh = hstart; rh < hend; ++rh) {
 		    for (int rw = wstart; rw < wend; ++rw) {
 			bottom_diff[index] += top_diff_channel[rh * output_size + rw]
                                           * (1 - abs((rw / resize_factor) - w)) * (1 - abs((rh / resize_factor) - h));
 		    }
 		}
-		bottom_diff[index] /= (hend-hstart) * (wend-wstart);
+		bottom_diff[index] /= resize_factor*resize_factor;
 	}
 }
 
@@ -193,7 +197,7 @@ void ResizeLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   const Dtype* top_diff = top[0]->gpu_diff();
   Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
   const int bottom_count = bottom[0]->count();
-  caffe_gpu_set(bottom[0]->count(), Dtype(0.), bottom_diff);
+  //caffe_gpu_set(bottom[0]->count(), Dtype(0.), bottom_diff);
   //const int top_count = top[0]->count();
   int nthreads = top[0]->num() * top[0]->channels();
 
