@@ -2,7 +2,7 @@
 * Modified center loss layer for segmentation.
 * Author: Wei Zhen @ IIE, CAS
 * Create on: 2016-12-25
-* Last Modified: 2016-02-28
+* Last Modified: 2017-02-28
 */
 
 #include <vector>
@@ -182,14 +182,14 @@ void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
       caffe_axpy(dim, bottom[0]->channels()/(label_counter__[label_value] + (Dtype)1.), variation_sum_data + label_value*dim, center_diff + label_value*dim);
     }
 
-Dtype a=0, b=0, c=0;
+/*Dtype a=0, b=0, c=0;
 for (int i = 0; i < dim; i++){
 a+=center_mutual_distance.cpu_data()[1*dim+i]*this->lambda_;
 b+=variation_sum_data[1*dim+i]/(label_counter__[1] + (Dtype)1.)*bottom[0]->channels();
 c+=center_diff[1*dim+i];
 }
 const Dtype* test_val = center_mutual_distance.cpu_data()+(1*dim);
-printf("%f %f %f %f\n",a,b,c, caffe_cpu_dot(dim, test_val, test_val));
+printf("%f %f %f %f\n",a,b,c, caffe_cpu_dot(dim, test_val, test_val));*/
 
 
     // reset variation_sum_

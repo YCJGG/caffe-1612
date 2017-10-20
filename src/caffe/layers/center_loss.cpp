@@ -2,7 +2,7 @@
 * Modified center loss layer for segmentation.
 * Author: Wei Zhen @ IIE, CAS
 * Create on: 2016-12-25
-* Last Modified: 2016-02-28
+* Last Modified: 2017-02-28
 */
 
 #include <vector>
