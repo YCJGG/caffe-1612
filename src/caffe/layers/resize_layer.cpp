@@ -88,10 +88,10 @@ void ResizeLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 		    for (int c = 0; c < bottom[0]->channels(); ++c) {
 			for (int rh = 0; rh < this->output_size_; ++rh) {
 			    for (int rw = 0; rw < this->output_size_; ++rw) {
-				int h = int(rh / this->resize_factor_);
-				int w = int(rw / this->resize_factor_);
-				h = std::min(h, this->input_size_);
-				w = std::min(w, this->input_size_);
+				float h = rh / this->resize_factor_;
+				float w = rw / this->resize_factor_;
+				//h = std::min(h, this->input_size_);
+				//w = std::min(w, this->input_size_);
 				int top_idx = rh * this->output_size_ + rw;
 				top_data[top_idx] = 0;		// DO NOT forget to reset before accumulation
 				for (int n = std::max(static_cast<int>(h-1) + 1, 0); n < std::min(h + 1, this->input_size_); n++) {
