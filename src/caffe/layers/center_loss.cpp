@@ -22,6 +22,7 @@ void CenterLossLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   this->is_hard_aware_ = this->layer_param_.center_loss_param().is_hard_aware();
   this->ld_margin_ = this->layer_param_.center_loss_param().ld_margin();
   this->label_num_ = this->layer_param_.center_loss_param().label_num();  
+  this->has_inter_loss_term_ = this->layer_param_.center_loss_param().has_inter_loss_term();
   this->label_axis_ = bottom[0]->CanonicalAxisIndex(this->layer_param_.center_loss_param().axis());
   this->outer_num_ = bottom[0]->count(0, label_axis_);
   this->inner_num_ = bottom[0]->count(label_axis_+1);
@@ -183,9 +184,9 @@ void CenterLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	caffe_sub(dim, center+i*dim, center+j*dim, tmp_sub);
 	caffe_axpy(dim, (Dtype)1./label_num_, tmp_sub, distance_inter+i*dim);
     }
-  // L_{D} = max(ld_margin_ - center_mutual_distance^2, 0)
-  if (caffe_cpu_dot(dim, distance_inter+i*dim, distance_inter+i*dim) > this->ld_margin_)
-    caffe_set(dim, (Dtype)0., distance_inter+i*dim);
+    // L_{D} = max(ld_margin_ - center_mutual_distance^2, 0)
+    if (caffe_cpu_dot(dim, distance_inter+i*dim, distance_inter+i*dim) > this->ld_margin_)
+      caffe_set(dim, (Dtype)0., distance_inter+i*dim);
   }
 
   // the i-th distance_data
@@ -217,6 +218,29 @@ void CenterLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
         }
     }
   }
+  // is use inter loss term, compute its diff
+  if (this->has_inter_loss_term_ == true) {
+    for (int n = 0; n < num; ++n) {
+      for (int c = 0; c < dim; ++c) {
+          for (int j = 0; j < inner_num_; ++j) {
+	    const int label_idx = label_idx_converter(n, label_height, label_width, j, data_width);
+            const int label_value = static_cast<int>(bottom_label[label_idx]);
+	    // ignore label
+	    if (find(ignore_label_.begin(), ignore_label_.end(), label_value) != ignore_label_.end())  continue;
+            // dC(n,c,y,x) = X(n,c,y,x) - C(c,Y(n,1,y,x))
+            const int c_idx = n*dim+c;
+	    // if don't use hard aware mode or use hard aware mode and the flag>0,
+	    //    then propagate down inter loss diff
+	    if (this->is_hard_aware_==false || (this->is_hard_aware_==true && hw_flags[n*inner_num_ + j]>0)) {
+		distance_data[c_idx*inner_num_ + j] -= 2 * this->lambda_ / label_counter__[label_value] * distance_inter[label_value*dim+c];
+	    }
+	    // else, if use hard aware mode and the flag<=0, then do nothing
+	    else continue;
+          }
+      }
+    }
+  }
+
   // compute loss
   Dtype dot = caffe_cpu_dot(outer_num_ * inner_num_, distance_.cpu_data(), distance_.cpu_data());
   Dtype loss = dot / num / Dtype(2);
@@ -236,13 +260,13 @@ void CenterLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const int* label_counter__ = label_counter_.cpu_data();
     const int dim = bottom[0]->channels();
 
-    // center's diff from other centers, update after late_iter_
+    // center's diff from other centers, old: update after late_iter_, new: is controlled by has_inter_loss_term_ flag
     // second param in caffe_axpy is the control weight between the two diffs
-    if (count_ > this->late_iter_) {
+    if (this->has_inter_loss_term_ == true) {
 	caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
 	caffe_axpy(dim*label_num_, this->lambda_*(-2), center_mutual_distance.cpu_data(), center_diff);
-	if (count_ == this->late_iter_+1)
-	    LOG(INFO) << "Start computing mutual center diff.";
+	//if (count_ == this->late_iter_+1)
+	//    LOG(INFO) << "Start computing mutual center diff.";
     }
     // center's diff from the cluster itself
     for (int label_value = 0; label_value < label_num_; label_value++) {
@@ -266,11 +290,11 @@ void CenterLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   }
 
   // Gradient with respect to bottom data 
-  if (propagate_down[0] && count_ > this->late_iter_) {
+  if (propagate_down[0] && this->has_inter_loss_term_ == true) {
     caffe_copy(distance_.count(), distance_.cpu_data(), bottom[0]->mutable_cpu_diff());
     caffe_scal(distance_.count(), top[0]->cpu_diff()[0] / bottom[0]->num(), bottom[0]->mutable_cpu_diff());
-    if (count_ == this->late_iter_+1)
-      LOG(INFO) << "Start backpropagating data gradient.";
+    //if (count_ == this->late_iter_+1)
+    //  LOG(INFO) << "Start backpropagating data gradient.";
   }
   if (propagate_down[1]) {
     LOG(FATAL) << this->type()

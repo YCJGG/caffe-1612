@@ -58,6 +58,8 @@ class CenterLossLayer : public LossLayer<Dtype> {
 
   // begin to backpropagate data gradient after the late_iter_-th iteration
   int late_iter_;
+  // control whether inter-center-loss term participate the calculation
+  bool has_inter_loss_term_;
 
   // whether to use hard example awared mode
   bool is_hard_aware_;

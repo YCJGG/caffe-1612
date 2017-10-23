@@ -62,6 +62,43 @@ __global__ void Compute_distance_data_gpu(int nthreads,
 }
 
 template <typename Dtype>
+__global__ void Compute_inter_loss_term_gpu(int nthreads,
+		 const Dtype* bottom_label,
+		 Dtype* distance_data,
+		 const int dim, const int c,
+		 const Dtype* distance_inter,
+		 int* label_counter_,
+		 float label_bottom_factor,
+		 const int label_width, const int data_width,
+		 const int* ignore_label, const int ignore_label_size,
+		 const float lambda_, const bool is_hard_aware_,
+		 Dtype* hw_flags) {
+	CUDA_KERNEL_LOOP(index, nthreads) {
+	    // convert data idx to label idx
+	    const int y = int(index / data_width);
+	    const int x = index % data_width;
+	    const int y_ = int(y * label_bottom_factor);
+	    const int x_ = int(x * label_bottom_factor);
+	    const int label_idx = y_*label_width + x_;
+            const int label_value = static_cast<int>(bottom_label[label_idx]);
+	    // ignore label
+	    bool ignore_label_flag = false;
+	    for (int i = 0; i < ignore_label_size; i++) {
+		if (ignore_label[i] == label_value)
+		    ignore_label_flag = true;
+	    }
+	    if (ignore_label_flag)    continue;
+	    // if don't use hard aware mode or use hard aware mode and the flag>0,
+	    //    then propagate down inter loss diff
+	    if (is_hard_aware_==false || (is_hard_aware_==true && hw_flags[index]>0)) {
+		distance_data[index] -= 2 * lambda_ / label_counter_[label_value] * distance_inter[label_value*dim+c];
+	    }
+	    // else, if use hard aware mode and the flag<=0, then do nothing
+	    else {}
+        }
+}
+
+template <typename Dtype>
 void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
   const int num = bottom[0]->num();
@@ -146,6 +183,29 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 		 hw_flags);					//hard aware flags
     }
   }
+  // is use inter loss term, compute its diff
+  if (this->has_inter_loss_term_ == true) {
+    for (int n = 0; n < num; ++n) {
+      for (int c = 0; c < dim; ++c) {
+	const int c_idx = n*dim+c;
+	const Dtype* bottom_label = bottom[1]->gpu_data()+n*label_height*label_width;
+	const Dtype* bottom_data = bottom[0]->gpu_data()+c_idx*inner_num_;
+	Dtype* distance_data = distance_.mutable_gpu_data() + c_idx*inner_num_;
+	Compute_inter_loss_term_gpu<Dtype><<<CAFFE_GET_BLOCKS(inner_num_), CAFFE_CUDA_NUM_THREADS>>>
+		(inner_num_,					//nthreads
+		 bottom_label,					//bottom_label
+		 distance_data,					//distance_data
+		 dim, c,					//dim, c
+		 center_mutual_distance.gpu_data(),		//distance_inter
+		 label_counter_.mutable_gpu_data(),		//label_counter_
+		 this->label_bottom_factor,			//label_bottom_factor
+		 label_width, data_width,			//label_width, data_width
+		 cu_ignore_label, this->ignore_label_.size(),   //ignore_label, ignore_label_size
+		 this->lambda_, this->is_hard_aware_,		//lambda_, is_hard_aware_
+		 hw_flags);
+      }
+    }
+  }
 
   // compute loss
   Dtype loss = caffe_cpu_dot(distance_.count(), distance_.cpu_data(), distance_.cpu_data());
@@ -168,12 +228,12 @@ void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const int dim = bottom[0]->channels();
 
     caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
-    // center's diff from other centers, update after late_iter_
-    if (count_ > this->late_iter_) {
+    // center's diff from other centers, old: update after late_iter_, new: is controlled by has_inter_loss_term_ flag
+    if (this->has_inter_loss_term_ == true) {
 	// second param is the balance weight between two different gradients
 	caffe_axpy(dim*label_num_, this->lambda_*(-2), center_mutual_distance.cpu_data(), center_diff);
-	if (count_ == this->late_iter_+1)
-	    LOG(INFO) << "Start computing mutual center diff.";
+	//if (count_ == this->late_iter_+1)
+	//    LOG(INFO) << "Start computing mutual center diff.";
     }
 
     for (int label_value = 0; label_value < label_num_; label_value++) {
@@ -198,10 +258,10 @@ printf("%f %f %f %f\n",a,b,c, caffe_cpu_dot(dim, test_val, test_val));*/
     caffe_set(label_counter_.count(), (int)0., label_counter_.mutable_cpu_data());
   }
   // Gradient with respect to bottom data 
-  if (propagate_down[0] && count_ > this->late_iter_) {
+  if (propagate_down[0] && this->has_inter_loss_term_ == true) {
     caffe_cpu_scale(distance_.count(), top[0]->cpu_diff()[0] / bottom[0]->num(), distance_.cpu_data(), bottom[0]->mutable_cpu_diff());
-    if (count_ == this->late_iter_+1)
-      LOG(INFO) << "Start backpropagating data gradient.";
+    //if (count_ == this->late_iter_+1)
+    //  LOG(INFO) << "Start backpropagating data gradient.";
   }
   if (propagate_down[1]) {
     LOG(FATAL) << this->type()
