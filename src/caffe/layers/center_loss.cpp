@@ -232,7 +232,7 @@ void CenterLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	    // if don't use hard aware mode or use hard aware mode and the flag>0,
 	    //    then propagate down inter loss diff
 	    if (this->is_hard_aware_==false || (this->is_hard_aware_==true && hw_flags[n*inner_num_ + j]>0)) {
-		distance_data[c_idx*inner_num_ + j] -= 2 * this->lambda_ / label_counter__[label_value] * distance_inter[label_value*dim+c];
+		distance_data[c_idx*inner_num_ + j] += 2 * this->lambda_ / label_counter__[label_value] * distance_inter[label_value*dim+c];
 	    }
 	    // else, if use hard aware mode and the flag<=0, then do nothing
 	    else continue;
@@ -264,7 +264,7 @@ void CenterLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     // second param in caffe_axpy is the control weight between the two diffs
     if (this->has_inter_loss_term_ == true) {
 	caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
-	caffe_axpy(dim*label_num_, this->lambda_*(-2), center_mutual_distance.cpu_data(), center_diff);
+	caffe_axpy(dim*label_num_, this->lambda_*2, center_mutual_distance.cpu_data(), center_diff);
 	//if (count_ == this->late_iter_+1)
 	//    LOG(INFO) << "Start computing mutual center diff.";
     }

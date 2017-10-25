@@ -91,7 +91,7 @@ __global__ void Compute_inter_loss_term_gpu(int nthreads,
 	    // if don't use hard aware mode or use hard aware mode and the flag>0,
 	    //    then propagate down inter loss diff
 	    if (is_hard_aware_==false || (is_hard_aware_==true && hw_flags[index]>0)) {
-		distance_data[index] -= 2 * lambda_ / label_counter_[label_value] * distance_inter[label_value*dim+c];
+		distance_data[index] += 2 * lambda_ / label_counter_[label_value] * distance_inter[label_value*dim+c];
 	    }
 	    // else, if use hard aware mode and the flag<=0, then do nothing
 	    else {}
@@ -231,7 +231,7 @@ void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     // center's diff from other centers, old: update after late_iter_, new: is controlled by has_inter_loss_term_ flag
     if (this->has_inter_loss_term_ == true) {
 	// second param is the balance weight between two different gradients
-	caffe_axpy(dim*label_num_, this->lambda_*(-2), center_mutual_distance.cpu_data(), center_diff);
+	caffe_axpy(dim*label_num_, this->lambda_*2, center_mutual_distance.cpu_data(), center_diff);
 	//if (count_ == this->late_iter_+1)
 	//    LOG(INFO) << "Start computing mutual center diff.";
     }
