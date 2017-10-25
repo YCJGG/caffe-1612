@@ -1,14 +1,14 @@
 /*
-* Modified center loss layer for segmentation.
-* Author: Wei Zhen @ IIE, CAS
-* Create on: 2016-12-25
-* Last Modified: 2017-10-23
+* Statistical contextual loss layer for segmentation.
+* Author: Wei Zhen @ CS, HUST
+* Create on: 2017-10-24
+* Last Modified: 2017-10-24
 */
 
 #include <vector>
 
 #include "caffe/filler.hpp"
-#include "caffe/layers/center_loss_layer.hpp"
+#include "caffe/layers/sc_loss_layer.hpp"
 #include "caffe/util/math_functions.hpp"
 
 namespace caffe {
@@ -91,7 +91,7 @@ __global__ void Compute_inter_loss_term_gpu(int nthreads,
 	    // if don't use hard aware mode or use hard aware mode and the flag>0,
 	    //    then propagate down inter loss diff
 	    if (is_hard_aware_==false || (is_hard_aware_==true && hw_flags[index]>0)) {
-		distance_data[index] -= 2 * lambda_ / label_counter_[label_value] * distance_inter[label_value*dim+c];
+		distance_data[index] += 2 * lambda_ / label_counter_[label_value] * distance_inter[label_value*dim+c];
 	    }
 	    // else, if use hard aware mode and the flag<=0, then do nothing
 	    else {}
@@ -99,7 +99,7 @@ __global__ void Compute_inter_loss_term_gpu(int nthreads,
 }
 
 template <typename Dtype>
-void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+void StatisticContextualLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
   const int num = bottom[0]->num();
   const int dim = bottom[0]->channels();
@@ -107,27 +107,9 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   const int label_width = bottom[1]->width();
   const int data_width = bottom[0]->width();
 
-/*
-  // find shortest center distance for each center
-  Dtype tmp_distance = 1e20;
-  Dtype* tmp_sub = (Dtype*)malloc(dim*sizeof(Dtype));
-  Dtype* distance_inter = center_mutual_distance.mutable_cpu_data();
-  const Dtype* center = this->blobs_[0]->cpu_data();
-  for (int i = 0; i < label_num_; ++i) {
-    if (find(ignore_label_.begin(), ignore_label_.end(), i) != ignore_label_.end())  continue;
-    for (int j = 0; j < label_num_; ++j) {
-	if (find(ignore_label_.begin(), ignore_label_.end(), j) != ignore_label_.end())  continue;
-	if (i == j)  continue;
-	// |current center (i) - another center (j)|^2, i != j
-	caffe_sub(dim, center+i*dim, center+j*dim, tmp_sub);
-	Dtype tmp = caffe_cpu_dot(dim, tmp_sub, tmp_sub);
-	if (tmp < tmp_distance) {
-	    tmp_distance = tmp;
-	    caffe_copy(dim, tmp_sub, distance_inter+i*dim);
-	}
-    }
-  }
-*/
+  /*
+  * 1. inter center distances
+  */
   // accumulate all mutual center distances
   Dtype* tmp_sub = (Dtype*)malloc(dim*sizeof(Dtype));
   Dtype* distance_inter = center_mutual_distance.mutable_cpu_data();
@@ -144,11 +126,14 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 	caffe_axpy(dim, (Dtype)1./label_num_, tmp_sub, distance_inter+i*dim);
     }
   // L_{D} = max(ld_margin_ - center_mutual_distance^2, 0)
-//printf("%f %f\n",caffe_cpu_dot(dim, distance_inter+i*dim, distance_inter+i*dim), this->ld_margin_);
   if (caffe_cpu_dot(dim, distance_inter+i*dim, distance_inter+i*dim) > this->ld_margin_)
     caffe_set(dim, (Dtype)0., distance_inter+i*dim);
   }
   
+  /*
+  * 2. class intra distances and intra term diffs
+  */
+  /* 2.1 copy var into gpu space */
   // convert ignore label vector into array
   int* cu_ignore_label = NULL;
   cudaMalloc((void**)&cu_ignore_label, this->ignore_label_.size() * sizeof(int));
@@ -183,10 +168,14 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 		 hw_flags);					//hard aware flags
     }
   }
-  // is use inter loss term, compute its diff
-  if (this->has_inter_loss_term_ == true) {
-    for (int n = 0; n < num; ++n) {
-      for (int c = 0; c < dim; ++c) {
+  for (int i = 0; i < label_counter_.count(); i++)
+    label_counter_.mutable_gpu_data()[i] /= dim;
+
+  /*
+  * 3. inter diffs
+  */
+  for (int n = 0; n < num; ++n) {
+    for (int c = 0; c < dim; ++c) {
 	const int c_idx = n*dim+c;
 	const Dtype* bottom_label = bottom[1]->gpu_data()+n*label_height*label_width;
 	const Dtype* bottom_data = bottom[0]->gpu_data()+c_idx*inner_num_;
@@ -203,11 +192,12 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 		 cu_ignore_label, this->ignore_label_.size(),   //ignore_label, ignore_label_size
 		 this->lambda_, this->is_hard_aware_,		//lambda_, is_hard_aware_
 		 hw_flags);
-      }
     }
   }
 
-  // compute loss
+  /*
+  * 4. compute loss
+  */
   Dtype loss = caffe_cpu_dot(distance_.count(), distance_.cpu_data(), distance_.cpu_data());
   loss = loss / num / Dtype(2);
   top[0]->mutable_cpu_data()[0] = loss;
@@ -217,29 +207,37 @@ void CenterLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 }
 
 template <typename Dtype>
-void CenterLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
+void StatisticContextualLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
 
-  // Gradient with respect to centers
+  /*
+  * 1. Gradient with respect to centers
+  */
   if (this->param_propagate_down_[0]) {
     Dtype* center_diff = this->blobs_[0]->mutable_cpu_diff();
+    const Dtype* center = this->blobs_[0]->mutable_cpu_data();
     const Dtype* variation_sum_data = variation_sum_.cpu_data();
     const int* label_counter__ = label_counter_.cpu_data();
     const int dim = bottom[0]->channels();
 
     caffe_set(this->blobs_[0]->count(), (Dtype)0., center_diff);
-    // center's diff from other centers, old: update after late_iter_, new: is controlled by has_inter_loss_term_ flag
-    if (this->has_inter_loss_term_ == true) {
-	// second param is the balance weight between two different gradients
-	caffe_axpy(dim*label_num_, this->lambda_*(-2), center_mutual_distance.cpu_data(), center_diff);
-	//if (count_ == this->late_iter_+1)
-	//    LOG(INFO) << "Start computing mutual center diff.";
-    }
-
+    /*
+    * 1.1 center's diff from other centers
+    */
+    // lambda is the balance weight between two different gradients
+    caffe_axpy(dim*label_num_, this->lambda_*2, center_mutual_distance.cpu_data(), center_diff);
+    /*
+    * 1.2 center's diff from the cluster itself
+    */
     for (int label_value = 0; label_value < label_num_; label_value++) {
       // ignore label
       if (find(ignore_label_.begin(), ignore_label_.end(), label_value) != ignore_label_.end())  continue;
-      caffe_axpy(dim, bottom[0]->channels()/(label_counter__[label_value] + (Dtype)1.), variation_sum_data + label_value*dim, center_diff + label_value*dim);
+      caffe_axpy(dim, (Dtype)1/(label_counter__[label_value] + (Dtype)1.), variation_sum_data + label_value*dim, center_diff + label_value*dim);
+      /*
+      * 1.3 center decay
+      */
+      caffe_axpy(dim, (Dtype)this->center_decay_, center + label_value*dim, center_diff + label_value*dim);
+      center_diff[label_value*dim + label_value] -= center[label_value*dim + label_value] * this->center_decay_;
     }
 
 /*Dtype a=0, b=0, c=0;
@@ -251,17 +249,18 @@ c+=center_diff[1*dim+i];
 const Dtype* test_val = center_mutual_distance.cpu_data()+(1*dim);
 printf("%f %f %f %f\n",a,b,c, caffe_cpu_dot(dim, test_val, test_val));*/
 
-
     // reset variation_sum_
     caffe_set(variation_sum_.count(), (Dtype)0., variation_sum_.mutable_cpu_data());
     // reset label counter
     caffe_set(label_counter_.count(), (int)0., label_counter_.mutable_cpu_data());
   }
+
+  /*
+  * 2. Gradient with respect to bottom data (they are acutually computed in forward func)
+  */
   // Gradient with respect to bottom data 
   if (propagate_down[0]) {
     caffe_cpu_scale(distance_.count(), top[0]->cpu_diff()[0] / bottom[0]->num(), distance_.cpu_data(), bottom[0]->mutable_cpu_diff());
-    //if (count_ == this->late_iter_+1)
-    //  LOG(INFO) << "Start backpropagating data gradient.";
   }
   if (propagate_down[1]) {
     LOG(FATAL) << this->type()
@@ -269,6 +268,6 @@ printf("%f %f %f %f\n",a,b,c, caffe_cpu_dot(dim, test_val, test_val));*/
   }
 }
 
-INSTANTIATE_LAYER_GPU_FUNCS(CenterLossLayer);
+INSTANTIATE_LAYER_GPU_FUNCS(StatisticContextualLossLayer);
 
 } // namespace caffe

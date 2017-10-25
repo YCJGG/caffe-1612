@@ -308,7 +308,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 157 (last added: duc_param)
+// LayerParameter next available layer-specific ID: 158 (last added: sc_loss_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -412,6 +412,7 @@ message LayerParameter {
   optional InflationFactorParameter inflation_factor_param = 154;
   optional ResizeParameter resize_param = 155;
   optional DUCParameter duc_param = 156;
+  optional SCLossParameter sc_loss_param = 157;
 }
 
 // used for DUC_aggregation Layer - 2017-08-17
@@ -516,6 +517,21 @@ message CenterLossParameter {
   optional float lambda = 7 [default = 0.005];
   optional float ld_margin = 8 [default = 1000];
   optional bool has_inter_loss_term = 9 [default = false];
+}
+
+message SCLossParameter {
+  optional uint32 label_num = 1; // The number of outputs for the layer
+  optional FillerParameter center_filler = 2; // The filler for the centers
+  // The first axis to be lumped into a single inner product computation;
+  // all preceding axes are retained in the output.
+  // May be negative to index from the end (e.g., -1 for the last axis).
+  optional int32 axis = 3 [default = 1];
+  repeated int32 ignore_label = 4;
+  optional int32 late_iter = 5 [default = 1000];
+  optional bool is_hard_aware = 6 [default = false];
+  optional float lambda = 7 [default = 0.005];
+  optional float ld_margin = 8 [default = 1];
+  optional float center_decay = 9 [default = 2e-6];
 }
 
 // Message that stores parameters used to apply transformation
