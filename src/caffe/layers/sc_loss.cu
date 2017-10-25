@@ -121,8 +121,10 @@ void StatisticContextualLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>
     for (int j = 0; j < label_num_; ++j) {
 	if (find(ignore_label_.begin(), ignore_label_.end(), j) != ignore_label_.end())  continue;
 	if (i == j)  continue;
-	// |current center (i) - another center (j)|^2, i != j
-	caffe_sub(dim, center+i*dim, center+j*dim, tmp_sub);
+	// |current center (i,i) - another center (j,i)|^2, i != j
+	// |current center (i,j) - another center (j,j)|^2, i != j
+	tmp_sub[i] = center[i*dim + i] - center[j*dim + i];
+	tmp_sub[j] = center[i*dim + j] - center[j*dim + j];
 	caffe_axpy(dim, (Dtype)1./label_num_, tmp_sub, distance_inter+i*dim);
     }
   // L_{D} = max(ld_margin_ - center_mutual_distance^2, 0)
