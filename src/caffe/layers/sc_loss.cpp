@@ -186,8 +186,9 @@ void StatisticContextualLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>
 	// |current center (i,j) - another center (j,j)|^2, i != j
 	tmp_sub[i] = center[i*dim + i] - center[j*dim + i];
 	tmp_sub[j] = center[i*dim + j] - center[j*dim + j];
-	caffe_axpy(dim, (Dtype)1./label_num_, tmp_sub, distance_inter+i*dim);
+	caffe_add(dim, tmp_sub, distance_inter+i*dim, distance_inter+i*dim);
     }
+    distance_inter[i*dim + i] /= (label_num_ - ignore_label_.size());
     // L_{D} = max(ld_margin_ - center_mutual_distance^2, 0)
     if (caffe_cpu_dot(dim, distance_inter+i*dim, distance_inter+i*dim) > this->ld_margin_)
       caffe_set(dim, (Dtype)0., distance_inter+i*dim);
