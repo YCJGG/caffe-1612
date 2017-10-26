@@ -118,6 +118,7 @@ void StatisticContextualLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>
   const Dtype* center = this->blobs_[0]->cpu_data();
   for (int i = 0; i < label_num_; ++i) {
     if (find(ignore_label_.begin(), ignore_label_.end(), i) != ignore_label_.end())  continue;
+    caffe_set(dim, (Dtype)0., tmp_sub);
     for (int j = 0; j < label_num_; ++j) {
 	if (find(ignore_label_.begin(), ignore_label_.end(), j) != ignore_label_.end())  continue;
 	if (i == j)  continue;
@@ -125,13 +126,14 @@ void StatisticContextualLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>
 	// |current center (i,j) - another center (j,j)|^2, i != j
 	tmp_sub[i] = center[i*dim + i] - center[j*dim + i];
 	tmp_sub[j] = center[i*dim + j] - center[j*dim + j];
-	caffe_add(dim, tmp_sub, distance_inter+i*dim, distance_inter+i*dim);
+	caffe_axpy(dim, (Dtype)1., tmp_sub, distance_inter+i*dim);
     }
     distance_inter[i*dim + i] /= (label_num_ - ignore_label_.size());
   // L_{D} = max(ld_margin_ - center_mutual_distance^2, 0)
   if (caffe_cpu_dot(dim, distance_inter+i*dim, distance_inter+i*dim) > this->ld_margin_)
     caffe_set(dim, (Dtype)0., distance_inter+i*dim);
   }
+  free(tmp_sub);
   
   /*
   * 2. class intra distances and intra term diffs
@@ -206,7 +208,6 @@ void StatisticContextualLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>
   top[0]->mutable_cpu_data()[0] = loss;
 
   cudaFree(cu_ignore_label);
-  free(tmp_sub);
 }
 
 template <typename Dtype>
@@ -256,6 +257,8 @@ printf("%f %f %f %f\n",a,b,c, caffe_cpu_dot(dim, test_val, test_val));*/
     caffe_set(variation_sum_.count(), (Dtype)0., variation_sum_.mutable_cpu_data());
     // reset label counter
     caffe_set(label_counter_.count(), (int)0., label_counter_.mutable_cpu_data());
+
+//LOG(INFO)<<"!!"<<center[0]<<" "<<center[1]<<" "<<center[2]<<" "<<center[3]<<" "<<center[4]<<" "<<center[5]<<" "<<center[6];
   }
 
   /*

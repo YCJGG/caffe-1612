@@ -24,7 +24,8 @@ void StatisticContextualLossLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>&
   this->label_num_ = this->layer_param_.sc_loss_param().label_num();  
   this->center_decay_ = this->layer_param_.sc_loss_param().center_decay();
   // keep center decay align with original weight decay
-  this->center_decay_ = this->layer_param_.param(0).lr_mult() == 0 ? 0 : this->center_decay_ / this->layer_param_.param(0).lr_mult();
+  this->center_decay_ = this->layer_param_.param(0).lr_mult() == 0 ?
+	 0 : (this->center_decay_ / this->layer_param_.param(0).lr_mult() / 1e-07 * 5e-4); // center decay / lr_multi / base_lr * weight_decay
   this->label_axis_ = bottom[0]->CanonicalAxisIndex(this->layer_param_.sc_loss_param().axis());
   this->outer_num_ = bottom[0]->count(0, label_axis_);
   this->inner_num_ = bottom[0]->count(label_axis_+1);
@@ -179,6 +180,7 @@ void StatisticContextualLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>
   caffe_set(center_mutual_distance.count(), (Dtype)0., distance_inter);
   for (int i = 0; i < label_num_; ++i) {
     if (find(ignore_label_.begin(), ignore_label_.end(), i) != ignore_label_.end())  continue;
+    caffe_set(dim, (Dtype)0., tmp_sub);
     for (int j = 0; j < label_num_; ++j) {
 	if (find(ignore_label_.begin(), ignore_label_.end(), j) != ignore_label_.end())  continue;
 	if (i == j)  continue;
@@ -186,13 +188,14 @@ void StatisticContextualLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>
 	// |current center (i,j) - another center (j,j)|^2, i != j
 	tmp_sub[i] = center[i*dim + i] - center[j*dim + i];
 	tmp_sub[j] = center[i*dim + j] - center[j*dim + j];
-	caffe_add(dim, tmp_sub, distance_inter+i*dim, distance_inter+i*dim);
+	caffe_axpy(dim, (Dtype)1., tmp_sub, distance_inter+i*dim);
     }
     distance_inter[i*dim + i] /= (label_num_ - ignore_label_.size());
     // L_{D} = max(ld_margin_ - center_mutual_distance^2, 0)
     if (caffe_cpu_dot(dim, distance_inter+i*dim, distance_inter+i*dim) > this->ld_margin_)
       caffe_set(dim, (Dtype)0., distance_inter+i*dim);
   }
+  delete [] tmp_sub;
 
   /*
   * 2. class intra distances and intra term diffs
@@ -258,7 +261,6 @@ void StatisticContextualLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>
   Dtype loss = dot / num / Dtype(2);
   top[0]->mutable_cpu_data()[0] = loss;
 
-  delete [] tmp_sub;
 }
 
 template <typename Dtype>
