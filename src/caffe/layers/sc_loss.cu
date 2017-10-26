@@ -172,7 +172,7 @@ void StatisticContextualLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>
     }
   }
   for (int i = 0; i < label_counter_.count(); i++)
-    label_counter_.mutable_gpu_data()[i] /= dim;
+    label_counter_.mutable_cpu_data()[i] /= dim;
 
   /*
   * 3. inter diffs
