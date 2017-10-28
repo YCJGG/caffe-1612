@@ -294,8 +294,10 @@ void StatisticContextualLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*
       /*
       * 1.3 center decay
       */
-      caffe_axpy(dim, (Dtype)this->center_decay_, center + label_value*dim, center_diff + label_value*dim);
-      center_diff[label_value*dim + label_value] -= center[label_value*dim + label_value] * this->center_decay_;
+      for (int i = 0; i < dim; i++) {
+	if ((i != label_value) && (center[label_value*dim+i] > 0))
+	    center_diff[label_value*dim + i] = (Dtype)this->center_decay_ * center[label_value*dim+i];
+      }
     }
 
 //Dtype a=0, b=0,c=0;

@@ -238,10 +238,12 @@ void StatisticContextualLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*
       if (find(ignore_label_.begin(), ignore_label_.end(), label_value) != ignore_label_.end())  continue;
       caffe_axpy(dim, (Dtype)1/(label_counter__[label_value] + (Dtype)1.), variation_sum_data + label_value*dim, center_diff + label_value*dim);
       /*
-      * 1.3 center decay
+      * 1.3 center decay, on non-nagative values on axises of other labels
       */
-      caffe_axpy(dim, (Dtype)this->center_decay_, center + label_value*dim, center_diff + label_value*dim);
-      center_diff[label_value*dim + label_value] -= center[label_value*dim + label_value] * this->center_decay_;
+      for (int i = 0; i < dim; i++) {
+	if ((i != label_value) && (center[label_value*dim+i] > 0))
+	    center_diff[label_value*dim + i] = (Dtype)this->center_decay_ * center[label_value*dim+i];
+      }
     }
 
 /*Dtype a=0, b=0, c=0;
