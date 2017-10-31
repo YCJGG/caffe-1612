@@ -308,7 +308,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 159 (last added: knowledge_distillation_param)
+// LayerParameter next available layer-specific ID: 160 (last added: WeightedGradientParameter)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -414,6 +414,7 @@ message LayerParameter {
   optional DUCParameter duc_param = 156;
   optional SCLossParameter sc_loss_param = 157;
   optional KnowledgeDistillationParameter knowledge_distillation_param = 158;
+  optional WeightedGradientParameter weighted_gradient_param = 159;
 }
 
 // used for DUC_aggregation Layer - 2017-08-17
@@ -537,6 +538,12 @@ message SCLossParameter {
 
 message KnowledgeDistillationParameter {
   optional float temperature = 1 [default = 1];
+}
+
+message WeightedGradientParameter {
+  // init inflation factor, DO NOT exceed its upper and lower bounds
+  optional float weight = 1 [default = 1];
+  repeated uint32 weighted_label = 2;
 }
 
 // Message that stores parameters used to apply transformation
