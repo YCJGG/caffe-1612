@@ -308,7 +308,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 160 (last added: WeightedGradientParameter)
+// LayerParameter next available layer-specific ID: 161 (last added: shuffle_channel_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -415,6 +415,7 @@ message LayerParameter {
   optional SCLossParameter sc_loss_param = 157;
   optional KnowledgeDistillationParameter knowledge_distillation_param = 158;
   optional WeightedGradientParameter weighted_gradient_param = 159;
+  optional ShuffleChannelParameter shuffle_channel_param = 160;
 }
 
 // used for DUC_aggregation Layer - 2017-08-17
@@ -536,14 +537,21 @@ message SCLossParameter {
   optional float center_decay = 9 [default = 2e-6];
 }
 
+// from https://github.com/wentianli/knowledge_distillation_caffe, 2017-10-30
 message KnowledgeDistillationParameter {
   optional float temperature = 1 [default = 1];
 }
 
+// 2017-10-31, implemented in image retargetting project
 message WeightedGradientParameter {
   // init inflation factor, DO NOT exceed its upper and lower bounds
   optional float weight = 1 [default = 1];
   repeated uint32 weighted_label = 2;
+}
+
+// from https://github.com/farmingyard/ShuffleNet, 2017-10-31
+message ShuffleChannelParameter {
+  optional uint32 group = 1[default = 1]; // The number of group
 }
 
 // Message that stores parameters used to apply transformation
