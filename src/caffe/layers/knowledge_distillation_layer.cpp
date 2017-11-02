@@ -45,6 +45,11 @@ void KnowledgeDistillationLayer<Dtype>::LayerSetUp(
   }
 
   T = this->layer_param_.knowledge_distillation_param().temperature();
+
+  // used for filtering teacher's high loss pred, init filtered idx vector - kfxw@2017-11-02
+  if (this->layer_param_.knowledge_distillation_param().filter_teacher_pred() == true) {
+    this->filtered_idx = vector<vector<int> >(bottom[0]->num());
+  }
 }
 
 template <typename Dtype>
@@ -64,9 +69,9 @@ void KnowledgeDistillationLayer<Dtype>::Reshape(
       << "Outer number of soft labels must match outer number of predictions.";
   CHECK_EQ(inner_num_, bottom[1]->count(softmax_axis_ + 1))
       << "Inner number of soft labels must match inner number of predictions.";
-  CHECK_EQ(bottom.size() == 3, has_ignore_label_)
+  CHECK_EQ(bottom.size() >= 3, has_ignore_label_)
       << "ignore_label is only valid when label inputs are given as bottom[2].";
-  if (bottom.size() == 3 && has_ignore_label_) {
+  if (bottom.size() >= 3 && has_ignore_label_) {
     CHECK_EQ(outer_num_ * inner_num_, bottom[2]->count())
         << "Number of labels must match number of predictions; "
         << "e.g., if softmax axis == 1 and prediction shape is (N, C, H, W), "
@@ -103,6 +108,34 @@ Dtype KnowledgeDistillationLayer<Dtype>::get_normalizer(
   // Some users will have no labels for some examples in order to 'turn off' a
   // particular loss in a multi-task setup. The max prevents NaNs in that case.
   return std::max(Dtype(1.0), normalizer);
+}
+
+// used for filtering teacher's high loss pred - kfxw@2017-11-02
+template <typename Dtype>
+vector<int> KnowledgeDistillationLayer<Dtype>::find_filtered_idx(Dtype* dense_loss, int array_size, int topK) {
+	if (topK <= 0) {
+		vector<int> res(topK);
+		return res;
+	}
+	// perform argsort, descending
+	vector<size_t> idx(array_size);
+	std::iota(idx.begin(), idx.end(), 0);
+	std::sort(idx.begin(), idx.end(),
+		 [&dense_loss](size_t i1, size_t i2) {return dense_loss[i1] > dense_loss[i2];});	// lambda function
+	// take first K idx
+	vector<int> res(topK);
+	std::copy(idx.begin(), idx.begin()+topK, res.begin());
+	return res;
+}
+
+// used for filtering teacher's high loss pred - kfxw@2017-11-02
+template <typename Dtype>
+void KnowledgeDistillationLayer<Dtype>::perform_filtering_on_diff(Dtype* diff, vector<int>filtered_idx, int label_num, int inner_num) {
+	for (vector<int>::size_type i = 0; i != filtered_idx.size(); ++i) {
+		for (int j = 0; j < label_num; j++) {
+			diff[j*inner_num + filtered_idx[i]] = 0;
+		}
+	}
 }
 
 template <typename Dtype>
@@ -152,6 +185,14 @@ void KnowledgeDistillationLayer<Dtype>::Forward_cpu(
   }
 
   top[0]->mutable_cpu_data()[0] = loss / get_normalizer(normalization_, count);
+
+  // filter out teacher's pred with high loss, kfxw@2017-11-02
+  if (this->layer_param_.knowledge_distillation_param().filter_teacher_pred() == true && bottom.size() == 4) {
+    for (int n = 0; n < bottom[0]->num(); n++) {
+      Dtype* p_dense_loss = bottom[3]->mutable_cpu_data() + n*inner_num_;
+      this->filtered_idx[n] = find_filtered_idx(p_dense_loss, inner_num_, this->layer_param_.knowledge_distillation_param().filter_top_k());
+    }
+  }
 }
 
 template <typename Dtype>
@@ -186,6 +227,14 @@ void KnowledgeDistillationLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>&
             ++count;
           }
         }
+      }
+    }
+
+    // filter out teacher's pred with high loss, kfxw@2017-11-02
+    if (this->layer_param_.knowledge_distillation_param().filter_teacher_pred() == true && bottom.size() == 4) {
+      for (int n = 0; n < bottom[0]->num(); n++) {
+        Dtype* bottom_diff_channel = bottom_diff + n*dim; 
+        perform_filtering_on_diff(bottom_diff_channel, this->filtered_idx[n], bottom[0]->channels(), inner_num_);
       }
     }
 

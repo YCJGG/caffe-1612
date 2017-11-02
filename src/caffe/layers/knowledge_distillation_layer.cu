@@ -101,6 +101,14 @@ void KnowledgeDistillationLayer<Dtype>::Forward_gpu(
   }
 
   top[0]->mutable_cpu_data()[0] = loss / get_normalizer(normalization_, count);
+
+  // filter out teacher's pred with high loss, kfxw@2017-11-02
+  if (this->layer_param_.knowledge_distillation_param().filter_teacher_pred() == true && bottom.size() == 4) {
+    for (int n = 0; n < bottom[0]->num(); n++) {
+      Dtype* p_dense_loss = bottom[3]->mutable_cpu_data() + n*inner_num_;
+      this->filtered_idx[n] = find_filtered_idx(p_dense_loss, inner_num_, this->layer_param_.knowledge_distillation_param().filter_top_k());
+    }
+  }
 }
 
 template <typename Dtype>
@@ -154,6 +162,16 @@ void KnowledgeDistillationLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>&
       gpu_adder.Reshape(gpu_count.shape());
       caffe_set(gpu_adder.count(), Dtype(1), gpu_adder.mutable_cpu_data());
       count = static_cast<int>(caffe_cpu_dot(gpu_adder.count(), gpu_adder.cpu_data(), gpu_count.cpu_data()));
+    }
+
+    // filter out teacher's pred with high loss, kfxw@2017-11-02
+    if (this->layer_param_.knowledge_distillation_param().filter_teacher_pred() == true && bottom.size() == 4) {
+      for (int n = 0; n < bottom[0]->num(); n++) {
+        Dtype* bottom_diff_channel = bottom[0]->mutable_cpu_diff() + n*dim; 
+        perform_filtering_on_diff(bottom_diff_channel, this->filtered_idx[n], bottom[0]->channels(), inner_num_);
+      }
+      // Note: sync bottom[0]'s cpu and gpu memory
+      bottom_diff = bottom[0]->mutable_gpu_diff();
     }
 
     // Scale gradient

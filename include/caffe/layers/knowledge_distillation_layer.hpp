@@ -40,7 +40,6 @@ namespace caffe {
  *
  * [1] Hinton, G. Vinyals, O. and Dean, J. Distilling knowledge in a neural network. 2015.
  *
- * TODO: GPU implementation
  */
 template <typename Dtype>
 class KnowledgeDistillationLayer : public LossLayer<Dtype> {
@@ -66,8 +65,12 @@ class KnowledgeDistillationLayer : public LossLayer<Dtype> {
 
   virtual inline const char* type() const { return "KnowledgeDistillation"; }
   virtual inline int ExactNumBottomBlobs() const { return -1; }
+  // bottom[0]: student's logits
+  // bottom[1]: teacher's logits
+  // (opt) bottom[2]: label map for ignore label
+  // (opt) bottom[3]: teacher's softmax dense loss for filtering, kfxw@2017-11-02 
   virtual inline int MinBottomBlobs() const { return 2; }
-  virtual inline int MaxBottomBlobs() const { return 3; }
+  virtual inline int MaxBottomBlobs() const { return 4; }
   virtual inline int ExactNumTopBlobs() const { return 1; }
 
  protected:
@@ -119,6 +122,11 @@ class KnowledgeDistillationLayer : public LossLayer<Dtype> {
   int softmax_axis_, outer_num_, inner_num_;
   /// temperature
   Dtype T;
+
+  // used for filtering teacher's high loss pred - kfxw@2017-11-02
+  vector<int> find_filtered_idx(Dtype* dense_loss, int array_size, int topK);
+  void perform_filtering_on_diff(Dtype* diff, vector<int>filtered_idx, int label_num, int inner_num);
+  vector<vector<int> > filtered_idx;
 };
 
 }  // namespace caffe

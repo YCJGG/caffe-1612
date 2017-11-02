@@ -540,6 +540,9 @@ message SCLossParameter {
 // from https://github.com/wentianli/knowledge_distillation_caffe, 2017-10-30
 message KnowledgeDistillationParameter {
   optional float temperature = 1 [default = 1];
+  // filter teacher's pred with high loss, 2017-11-02
+  optional bool filter_teacher_pred = 2 [default = false];
+  optional uint32 filter_top_k = 3 [default = 0];
 }
 
 // 2017-10-31, implemented in image retargetting project
