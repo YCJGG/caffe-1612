@@ -13,6 +13,7 @@ import cv2
 class grabCutLayer(caffe.Layer):
     """
 	Perform 2-class grabcut on each channel of parsing results.
+	Note add operators in reshape func should be the same as that in data layer (channel means)
 	No backward operations.
 	bottom[0]: parsing results, normalized by SoftMax (NxCxHxW)
 	bottom[1]: image / data (Nx3xHxW)
@@ -20,6 +21,8 @@ class grabCutLayer(caffe.Layer):
     """
 
     def setup(self, bottom, top):
+	self.bgModel = np.zeros((1,65),np.float64)
+	self.fgModel = np.zeros((1,65),np.float64)
 	return
 
     def reshape(self, bottom, top):
@@ -39,8 +42,6 @@ class grabCutLayer(caffe.Layer):
     def forward(self, bottom, top):
 	for n in range(bottom[0].num):
 		for idx,channel in enumerate(top[0].data[n,:,:,:]):
-			self.bgModel = np.zeros((1,65),np.float64)
-			self.fgModel = np.zeros((1,65),np.float64)
 			channel = bottom[0].data[n,idx,:,:].copy()
 			channel[channel>0.5] = cv2.GC_FGD
 			channel[channel!=cv2.GC_FGD] = cv2.GC_BGD

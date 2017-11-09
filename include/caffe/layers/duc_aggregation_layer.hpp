@@ -1,3 +1,13 @@
+/*
+# DUC aggregation operation.
+# A re-implementation of DUC operation described in paper "Understanding Convolution for Semantic Segmentation".
+#
+# Author: Wei Zhen @ CS, HUST
+# Create on: 2017-08-17
+# Last modify: 2017-08-17
+#
+*/
+
 #ifndef CAFFE_DUC_AGGREGATION_LAYER_HPP_
 #define CAFFE_DUC_AGGREGATION_LAYER_HPP_
 
