@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <vector>
+#include <cmath>
 
 #include "caffe/layers/pooling_layer.hpp"
 #include "caffe/util/math_functions.hpp"
@@ -120,6 +121,25 @@ void PoolingLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
     rand_idx_.Reshape(bottom[0]->num(), channels_, pooled_height_,
       pooled_width_);
   }
+  // add on 2018-01-15
+  // If dense p-norm pooling, bottom[1] should have the same size as
+  // the output blob
+  if (this->layer_param_.pooling_param().pool() ==
+    PoolingParameter_PoolMethod_DENSE_P_NORM) {
+      CHECK_EQ(bottom[1]->channels(), top[0]->channels())
+	<< "P values should have the same number of channels as output, ("
+	<< bottom[1]->channels() << " vs. " << top[0]->channels() << ")";
+      CHECK_EQ(bottom[1]->height(), top[0]->height())
+	<< "P values should have the same height as output, ("
+	<< bottom[1]->height() << " vs. " << top[0]->height() << ")";
+      CHECK_EQ(bottom[1]->width(), top[0]->width())
+	<< "P values should have the same width as output, ("
+	<< bottom[1]->width() << " vs. " << top[0]->width() << ")";
+    // resize numerator and denominator to save internal results and avoid 
+    // multiple computations
+    numerator.ReshapeLike(*top[0]);
+    denominator.ReshapeLike(*top[0]);
+  }
 }
 
 // TODO(Yangqing): Is there a faster way to do pooling in the channel-first
@@ -221,6 +241,51 @@ void PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   case PoolingParameter_PoolMethod_STOCHASTIC:
     NOT_IMPLEMENTED;
     break;
+  // add on 2018-01-15, dense p_norm pooling
+  case PoolingParameter_PoolMethod_DENSE_P_NORM: {
+    const Dtype* p_data = bottom[1]->cpu_data();
+    // init numerator and denominator
+    Dtype* numerator_data = this->numerator.mutable_cpu_data();
+    caffe_set(numerator.count(), Dtype(0), numerator_data);
+    Dtype* denominator_data = this->denominator.mutable_cpu_data();
+    caffe_set(denominator.count(), Dtype(0), denominator_data);
+    // The main loop
+    // y = sum(x_i ** (p+1)) / sum(x_i ** p)
+    for (int n = 0; n < bottom[0]->num(); ++n) {
+      for (int c = 0; c < channels_; ++c) {
+        for (int ph = 0; ph < pooled_height_; ++ph) {
+          for (int pw = 0; pw < pooled_width_; ++pw) {
+            int hstart = ph * stride_h_ - pad_h_;
+            int wstart = pw * stride_w_ - pad_w_;
+            int hend = min(hstart + kernel_h_, height_ + pad_h_);
+            int wend = min(wstart + kernel_w_, width_ + pad_w_);
+            hstart = max(hstart, 0);
+            wstart = max(wstart, 0);
+            hend = min(hend, height_);
+            wend = min(wend, width_);
+	    Dtype tmp_numerator = 0;
+	    Dtype tmp_denominator = 0;
+	    int top_idx = ph * pooled_width_ + pw;
+            for (int h = hstart; h < hend; ++h) {
+              for (int w = wstart; w < wend; ++w) {
+		int bottom_idx = h * width_ + w;
+		tmp_numerator += (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]+1);
+		tmp_denominator += (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]);
+              }
+            }
+	    top_data[top_idx] = tmp_numerator / tmp_denominator;
+          }
+        }
+        // compute offset
+	p_data += bottom[1]->offset(0, 1);
+	numerator_data += numerator.offset(0, 1);
+	denominator_data += denominator.offset(0, 1);
+        bottom_data += bottom[0]->offset(0, 1);
+        top_data += top[0]->offset(0, 1);
+      }
+    }
+    break;
+  }
   default:
     LOG(FATAL) << "Unknown pooling method.";
   }
@@ -301,6 +366,71 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   case PoolingParameter_PoolMethod_STOCHASTIC:
     NOT_IMPLEMENTED;
     break;
+  // add on 2018-01-15, dense p_norm pooling
+  case PoolingParameter_PoolMethod_DENSE_P_NORM:  {
+    const Dtype* bottom_data = bottom[0]->cpu_data();
+    const Dtype* top_data = top[0]->cpu_data();
+    Dtype* p_diff = bottom[1]->mutable_cpu_diff();
+    const Dtype* p_data = bottom[1]->cpu_data();
+    // init numerator and denominator
+    Dtype* numerator_data = this->numerator.mutable_cpu_data();
+    caffe_set(numerator.count(), Dtype(0), numerator_data);
+    Dtype* denominator_data = this->denominator.mutable_cpu_data();
+    caffe_set(denominator.count(), Dtype(0), denominator_data);
+    // get denominator**2 in advance
+    Blob<Dtype> denominator_pow2;
+    denominator_pow2.ReshapeLike(denominator);
+    Dtype* denominator_pow2_data = denominator_pow2.mutable_cpu_data();
+    caffe_sqr(denominator.count(), denominator_data, denominator_pow2_data);
+    // The main loop
+    // dL/dx_i = dL/dy_j * [((p_j+1)*(x_i**p_j)*denominator_j) - (p_j*(x_i**(p_j-1))*numerator_j)] / (denominator_j ** 2)
+    // dL/dp_j = dL/dy_j * [sum_i(ln(x_i)*(x_i**(p_j+1))*denominator_j - sum_i(ln(x_i)*(x_i**p_j))*numerator_j] / (denominator_j ** 2)
+    for (int n = 0; n < bottom[0]->num(); ++n) {
+      for (int c = 0; c < channels_; ++c) {
+        for (int ph = 0; ph < pooled_height_; ++ph) {
+          for (int pw = 0; pw < pooled_width_; ++pw) {
+            int hstart = ph * stride_h_ - pad_h_;
+            int wstart = pw * stride_w_ - pad_w_;
+            int hend = min(hstart + kernel_h_, height_ + pad_h_);
+            int wend = min(wstart + kernel_w_, width_ + pad_w_);
+            hstart = max(hstart, 0);
+            wstart = max(wstart, 0);
+            hend = min(hend, height_);
+            wend = min(wend, width_);
+	    int top_idx = ph * pooled_width_ + pw;	// j of p_j, y_j
+	    Dtype sum1 = 0;				// sum_i(ln(x_i)*(x_i**(p_j+1))
+	    Dtype sum2 = 0;				// sum_i(ln(x_i)*(x_i**(p_j))
+            for (int h = hstart; h < hend; ++h) {
+              for (int w = wstart; w < wend; ++w) {
+		int bottom_idx = h * width_ + w;	// i of x_i
+		Dtype x_pow_p_minus1 = (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]-1);
+		Dtype x_pow_p = x_pow_p_minus1 * p_data[top_idx];
+		Dtype x_pow_p_plus1 = x_pow_p * p_data[top_idx];
+		// dL/dx_i
+		bottom_diff[bottom_idx] += top_diff[top_idx] * 
+		  ( ((p_data[top_idx]+1) * x_pow_p * denominator_data[top_idx]) - (p_data[top_idx] * x_pow_p_minus1 * numerator_data[top_idx]) )
+		  / denominator_pow2_data[top_idx];
+		// dL/dp_j
+		sum1 += (Dtype)log(bottom_data[bottom_idx]) * x_pow_p_plus1;
+		sum2 += (Dtype)log(bottom_data[bottom_idx]) * x_pow_p;
+              }
+            }
+	    p_diff[top_idx] = top_diff[top_idx] * (sum1*denominator_data[top_idx] - sum2*numerator_data[top_idx]) / denominator_pow2_data[top_idx];
+          }
+        }
+        // compute offset
+	p_diff += bottom[1]->offset(0, 1);
+	p_data += bottom[1]->offset(0, 1);
+	numerator_data += numerator.offset(0, 1);
+	denominator_data += denominator.offset(0, 1);
+        bottom_diff += bottom[0]->offset(0, 1);
+        top_diff += top[0]->offset(0, 1);
+        bottom_data += bottom[0]->offset(0, 1);
+        top_data += top[0]->offset(0, 1);
+      }
+    }
+    break;
+  }
   default:
     LOG(FATAL) << "Unknown pooling method.";
   }

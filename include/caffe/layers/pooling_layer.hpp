@@ -25,7 +25,11 @@ class PoolingLayer : public Layer<Dtype> {
       const vector<Blob<Dtype>*>& top);
 
   virtual inline const char* type() const { return "Pooling"; }
-  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  // modified on 2018-01-15
+  // Dense p-norm pooling take 2 input blobs (feature map and dense p values)
+  // others only have one input
+  virtual inline int ExactNumBottomBlobs() const { return (this->layer_param_.pooling_param().pool() ==
+							PoolingParameter_PoolMethod_DENSE_P_NORM) ? 2 : 1; }
   virtual inline int MinTopBlobs() const { return 1; }
   // MAX POOL layers can output an extra top blob for the mask;
   // others can only output the pooled inputs.
@@ -53,6 +57,11 @@ class PoolingLayer : public Layer<Dtype> {
   bool global_pooling_;
   Blob<Dtype> rand_idx_;
   Blob<int> max_idx_;
+
+  // add on 2018-01-15
+  // Used in dense p-norm pooling
+  Blob<Dtype> numerator;
+  Blob<Dtype> denominator;
 };
 
 }  // namespace caffe
