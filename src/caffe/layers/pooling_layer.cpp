@@ -274,6 +274,8 @@ void PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
               }
             }
 	    top_data[top_idx] = tmp_numerator / tmp_denominator;
+	    numerator_data[top_idx] = tmp_numerator;
+	    denominator_data[top_idx] = tmp_denominator;
           }
         }
         // compute offset
@@ -373,10 +375,8 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     Dtype* p_diff = bottom[1]->mutable_cpu_diff();
     const Dtype* p_data = bottom[1]->cpu_data();
     // init numerator and denominator
-    Dtype* numerator_data = this->numerator.mutable_cpu_data();
-    caffe_set(numerator.count(), Dtype(0), numerator_data);
-    Dtype* denominator_data = this->denominator.mutable_cpu_data();
-    caffe_set(denominator.count(), Dtype(0), denominator_data);
+    const Dtype* numerator_data = this->numerator.cpu_data();
+    const Dtype* denominator_data = this->denominator.cpu_data();
     // get denominator**2 in advance
     Blob<Dtype> denominator_pow2;
     denominator_pow2.ReshapeLike(denominator);

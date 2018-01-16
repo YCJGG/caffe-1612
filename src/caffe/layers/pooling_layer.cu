@@ -153,6 +153,46 @@ __global__ void StoPoolForwardTest(const int nthreads,
   }
 }
 
+// add on 2018-01-16, dense p_norm pooling forwarding
+template <typename Dtype>
+__global__ void DensePNormForward(const int nthreads,
+	 const Dtype* bottom_data, Dtype* top_data,
+	 const Dtype* p_data, Dtype* numerator_data, Dtype* denominator_data,
+	 const int bottom_num, const int channels,
+	 const int bottom_height_, const int bottom_width_,
+	 const int pooled_height_, const int pooled_width_,
+	 const int kernel_h_, const int kernel_w_,
+	 const int stride_h_, const int stride_w_,
+	 const int pad_h_, const int pad_w_) {
+  CUDA_KERNEL_LOOP(index, nthreads) {
+    const int pw = index % pooled_width_;
+    const int ph = (index / pooled_width_) % pooled_height_;
+    const int c = (index / pooled_width_ / pooled_height_) % channels;
+    const int n = index / pooled_width_ / pooled_height_ / channels;
+    int hstart = ph * stride_h_ - pad_h_;
+    int wstart = pw * stride_w_ - pad_w_;
+    int hend = min(hstart + kernel_h_, bottom_height_ + pad_h_);
+    int wend = min(wstart + kernel_w_, bottom_width_ + pad_w_);
+    hstart = max(hstart, 0);
+    wstart = max(wstart, 0);
+    hend = min(hend, bottom_height_);
+    wend = min(wend, bottom_width_);
+    Dtype tmp_numerator = 0;
+    Dtype tmp_denominator = 0;
+    int top_idx = index;
+    bottom_data += (c * channels + n) * bottom_height_ * bottom_width_;
+    for (int h = hstart; h < hend; ++h) {
+      for (int w = wstart; w < wend; ++w) {
+	int bottom_idx = h * bottom_width_ + w;
+	tmp_numerator += (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]+1);
+	tmp_denominator += (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]);
+      }
+    }
+    top_data[top_idx] = tmp_numerator / tmp_denominator;
+    numerator_data[top_idx] = tmp_numerator;
+    denominator_data[top_idx] = tmp_denominator;
+  }
+}
 
 template <typename Dtype>
 void PoolingLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
@@ -206,6 +246,22 @@ void PoolingLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
           kernel_w_, stride_h_, stride_w_, top_data);
     }
     break;
+  // add on 2018-01-16, dense p_norm pooling
+  case PoolingParameter_PoolMethod_DENSE_P_NORM: {
+    const Dtype* p_data = bottom[1]->gpu_data();
+    // init numerator and denominator
+    Dtype* numerator_data = this->numerator.mutable_gpu_data();
+    caffe_gpu_set(numerator.count(), Dtype(0), numerator_data);
+    Dtype* denominator_data = this->denominator.mutable_cpu_data();
+    caffe_gpu_set(denominator.count(), Dtype(0), denominator_data);
+    // The main loop
+    DensePNormForward<Dtype><<<CAFFE_GET_BLOCKS(count),
+				 CAFFE_CUDA_NUM_THREADS>>>(
+	count, bottom_data, top_data, p_data, numerator_data, denominator_data,
+	bottom[0]->num(), channels_, height_, width_, pooled_height_, pooled_width_,
+	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_);
+    break;
+  }
   default:
     LOG(FATAL) << "Unknown pooling method.";
   }
@@ -329,6 +385,57 @@ __global__ void StoPoolBackward(const int nthreads,
   }
 }
 
+// add on 2018-01-16, dense p_norm pooling backwarding
+template <typename Dtype>
+__global__ void DensePNormBackward(const int nthreads,
+	 const Dtype* bottom_data, Dtype* bottom_diff, const Dtype* top_data, const Dtype* top_diff,
+	 const Dtype* p_data, Dtype* p_diff,
+	 const Dtype* numerator_data, const Dtype* denominator_data, const Dtype* denominator_pow2_data,
+	 const int bottom_num, const int channels,
+	 const int bottom_height_, const int bottom_width_,
+	 const int pooled_height_, const int pooled_width_,
+	 const int kernel_h_, const int kernel_w_,
+	 const int stride_h_, const int stride_w_,
+	 const int pad_h_, const int pad_w_) {
+  CUDA_KERNEL_LOOP(index, nthreads) {
+    const int pw = index % pooled_width_;
+    const int ph = (index / pooled_width_) % pooled_height_;
+    const int c = (index / pooled_width_ / pooled_height_) % channels;
+    const int n = index / pooled_width_ / pooled_height_ / channels;
+    int hstart = ph * stride_h_ - pad_h_;
+    int wstart = pw * stride_w_ - pad_w_;
+    int hend = min(hstart + kernel_h_, bottom_height_ + pad_h_);
+    int wend = min(wstart + kernel_w_, bottom_width_ + pad_w_);
+    hstart = max(hstart, 0);
+    wstart = max(wstart, 0);
+    hend = min(hend, bottom_height_);
+    wend = min(wend, bottom_width_);
+    // dL/dx_i = dL/dy_j * [((p_j+1)*(x_i**p_j)*denominator_j) - (p_j*(x_i**(p_j-1))*numerator_j)] / (denominator_j ** 2)
+    // dL/dp_j = dL/dy_j * [sum_i(ln(x_i)*(x_i**(p_j+1))*denominator_j - sum_i(ln(x_i)*(x_i**p_j))*numerator_j] / (denominator_j ** 2)
+    int top_idx = index;	// j of p_j, y_j
+    Dtype sum1 = 0;		// sum_i(ln(x_i)*(x_i**(p_j+1))
+    Dtype sum2 = 0;		// sum_i(ln(x_i)*(x_i**(p_j))
+    int bottom_offset = (c * channels + n) * bottom_height_ * bottom_width_;
+    bottom_data += bottom_offset;
+    bottom_diff += bottom_offset;
+    for (int h = hstart; h < hend; ++h) {
+      for (int w = wstart; w < wend; ++w) {
+	int bottom_idx = h * bottom_width_ + w;
+	Dtype x_pow_p_minus1 = (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]-1);
+	Dtype x_pow_p = x_pow_p_minus1 * p_data[top_idx];
+	Dtype x_pow_p_plus1 = x_pow_p * p_data[top_idx];
+	// dL/dx_i
+	bottom_diff[bottom_idx] += top_diff[top_idx] * 
+	   ( ((p_data[top_idx]+1) * x_pow_p * denominator_data[top_idx]) - (p_data[top_idx] * x_pow_p_minus1 * numerator_data[top_idx]) )
+	      / denominator_pow2_data[top_idx];
+	// dL/dp_j
+	sum1 += (Dtype)log(bottom_data[bottom_idx]) * x_pow_p_plus1;
+	sum2 += (Dtype)log(bottom_data[bottom_idx]) * x_pow_p;
+      }
+    }
+    p_diff[top_idx] = top_diff[top_idx] * (sum1*denominator_data[top_idx] - sum2*numerator_data[top_idx]) / denominator_pow2_data[top_idx];
+  }
+}
 
 template <typename Dtype>
 void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
@@ -373,6 +480,28 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
         pooled_width_, kernel_h_, kernel_w_, stride_h_, stride_w_,
         bottom_diff);
     break;
+  // add on 2018-01-16, dense p_norm pooling
+  case PoolingParameter_PoolMethod_DENSE_P_NORM:  {
+    const Dtype* bottom_data = bottom[0]->gpu_data();
+    const Dtype* top_data = top[0]->gpu_data();
+    Dtype* p_diff = bottom[1]->mutable_gpu_diff();
+    const Dtype* p_data = bottom[1]->gpu_data();
+    // init numerator and denominator
+    const Dtype* numerator_data = this->numerator.gpu_data();
+    const Dtype* denominator_data = this->denominator.gpu_data();
+    // get denominator**2 in advance
+    Blob<Dtype> denominator_pow2;
+    denominator_pow2.ReshapeLike(denominator);
+    Dtype* denominator_pow2_data = denominator_pow2.mutable_gpu_data();
+    caffe_gpu_sqrt(denominator.count(), denominator_data, denominator_pow2_data);
+    // The main loop
+    DensePNormBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
+	count, bottom_data, bottom_diff, top_data, top_diff, p_data, p_diff,
+	numerator_data, denominator_data, denominator_pow2_data,
+	bottom[0]->num(), channels_, height_, width_, pooled_height_, pooled_width_,
+	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_);
+    break;
+  }
   default:
     LOG(FATAL) << "Unknown pooling method.";
   }
