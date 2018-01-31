@@ -264,7 +264,7 @@ void PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
             hend = min(hend, height_);
             wend = min(wend, width_);
 	    Dtype tmp_numerator = 0;
-	    Dtype tmp_denominator = 0;
+	    Dtype tmp_denominator = Dtype(FLT_MIN);	// avoid divided by 0
 	    int top_idx = ph * pooled_width_ + pw;
             for (int h = hstart; h < hend; ++h) {
               for (int w = wstart; w < wend; ++w) {

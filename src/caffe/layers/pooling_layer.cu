@@ -178,7 +178,7 @@ __global__ void DensePNormForward(const int nthreads,
     hend = min(hend, bottom_height_);
     wend = min(wend, bottom_width_);
     Dtype tmp_numerator = 0;
-    Dtype tmp_denominator = 0;
+    Dtype tmp_denominator = Dtype(FLT_MIN);	// avoid divided by 0
     int top_idx = index;
     bottom_data += (c * channels + n) * bottom_height_ * bottom_width_;
     for (int h = hstart; h < hend; ++h) {
