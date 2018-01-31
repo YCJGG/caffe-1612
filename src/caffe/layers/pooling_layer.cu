@@ -171,12 +171,10 @@ __global__ void DensePNormForward(const int nthreads,
     const int n = index / pooled_width_ / pooled_height_ / channels;
     int hstart = ph * stride_h_ - pad_h_;
     int wstart = pw * stride_w_ - pad_w_;
-    int hend = min(hstart + kernel_h_, bottom_height_ + pad_h_);
-    int wend = min(wstart + kernel_w_, bottom_width_ + pad_w_);
+    int hend = min(hstart + kernel_h_, bottom_height_);
+    int wend = min(wstart + kernel_w_, bottom_width_);
     hstart = max(hstart, 0);
     wstart = max(wstart, 0);
-    hend = min(hend, bottom_height_);
-    wend = min(wend, bottom_width_);
     Dtype tmp_numerator = 0;
     Dtype tmp_denominator = Dtype(FLT_MIN);	// avoid divided by 0
     int top_idx = index;
@@ -252,7 +250,7 @@ void PoolingLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     // init numerator and denominator
     Dtype* numerator_data = this->numerator.mutable_gpu_data();
     caffe_gpu_set(numerator.count(), Dtype(0), numerator_data);
-    Dtype* denominator_data = this->denominator.mutable_cpu_data();
+    Dtype* denominator_data = this->denominator.mutable_gpu_data();
     caffe_gpu_set(denominator.count(), Dtype(0), denominator_data);
     // The main loop
     DensePNormForward<Dtype><<<CAFFE_GET_BLOCKS(count),
