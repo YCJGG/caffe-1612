@@ -387,8 +387,8 @@ __global__ void StoPoolBackward(const int nthreads,
 
 // add on 2018-01-16, dense p_norm pooling backwarding
 template <typename Dtype>
-__global__ void DensePNormBackward(const int nthreads,
-	 const Dtype* bottom_data, Dtype* bottom_diff, const Dtype* top_data, const Dtype* top_diff,
+__global__ void DensePNormBackward_P(const int nthreads,
+	 const Dtype* bottom_data, const Dtype* top_data, const Dtype* top_diff,
 	 const Dtype* p_data, Dtype* p_diff,
 	 const Dtype* numerator_data, const Dtype* denominator_data, const Dtype* denominator_pow2_data,
 	 const int bottom_num, const int channels,
@@ -410,30 +410,70 @@ __global__ void DensePNormBackward(const int nthreads,
     wstart = max(wstart, 0);
     hend = min(hend, bottom_height_);
     wend = min(wend, bottom_width_);
-    // dL/dx_i = dL/dy_j * [((p_j+1)*(x_i**p_j)*denominator_j) - (p_j*(x_i**(p_j-1))*numerator_j)] / (denominator_j ** 2)
     // dL/dp_j = dL/dy_j * [sum_i(ln(x_i)*(x_i**(p_j+1))*denominator_j - sum_i(ln(x_i)*(x_i**p_j))*numerator_j] / (denominator_j ** 2)
     int top_idx = index;	// j of p_j, y_j
     Dtype sum1 = 0;		// sum_i(ln(x_i)*(x_i**(p_j+1))
     Dtype sum2 = 0;		// sum_i(ln(x_i)*(x_i**(p_j))
     int bottom_offset = (c * channels + n) * bottom_height_ * bottom_width_;
     bottom_data += bottom_offset;
-    bottom_diff += bottom_offset;
     for (int h = hstart; h < hend; ++h) {
       for (int w = wstart; w < wend; ++w) {
 	int bottom_idx = h * bottom_width_ + w;
-	Dtype x_pow_p_minus1 = (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]-1);
-	Dtype x_pow_p = x_pow_p_minus1 * p_data[top_idx];
+	Dtype x_pow_p = (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]);
 	Dtype x_pow_p_plus1 = x_pow_p * p_data[top_idx];
-	// dL/dx_i
-	bottom_diff[bottom_idx] += top_diff[top_idx] * 
-	   ( ((p_data[top_idx]+1) * x_pow_p * denominator_data[top_idx]) - (p_data[top_idx] * x_pow_p_minus1 * numerator_data[top_idx]) )
-	      / denominator_pow2_data[top_idx];
-	// dL/dp_j
 	sum1 += (Dtype)log(bottom_data[bottom_idx]) * x_pow_p_plus1;
 	sum2 += (Dtype)log(bottom_data[bottom_idx]) * x_pow_p;
       }
     }
     p_diff[top_idx] = top_diff[top_idx] * (sum1*denominator_data[top_idx] - sum2*numerator_data[top_idx]) / denominator_pow2_data[top_idx];
+  }
+}
+
+// add on 2018-01-31, dense p_norm pooling backwarding
+template <typename Dtype>
+__global__ void DensePNormBackward_data(const int nthreads,
+	 const Dtype* bottom_data, Dtype* bottom_diff, const Dtype* top_data, const Dtype* top_diff,
+	 const Dtype* p_data,
+	 const Dtype* numerator_data, const Dtype* denominator_data, const Dtype* denominator_pow2_data,
+	 const int bottom_num, const int channels,
+	 const int bottom_height_, const int bottom_width_,
+	 const int pooled_height_, const int pooled_width_,
+	 const int kernel_h_, const int kernel_w_,
+	 const int stride_h_, const int stride_w_,
+	 const int pad_h_, const int pad_w_) {
+  CUDA_KERNEL_LOOP(index, nthreads) {
+    // find out the local index
+    // find out the local offset
+    const int w = index % bottom_width_;
+    const int h = (index / bottom_width_) % bottom_height_;
+    const int c = (index / bottom_width_ / bottom_height_) % channels;
+    const int n = index / bottom_width_ / bottom_height_ / channels;
+    // find out related top idx
+    const int phstart =
+         (h + pad_h_ < kernel_h_) ? 0 : (h + pad_h_ - kernel_h_) / stride_h_ + 1;
+    const int phend = min((h + pad_h_) / stride_h_ + 1, pooled_height_);
+    const int pwstart =
+         (w + pad_w_ < kernel_w_) ? 0 : (w + pad_w_ - kernel_w_) / stride_w_ + 1;
+    const int pwend = min((w + pad_w_) / stride_w_ + 1, pooled_width_);
+    // dL/dx_i = dL/dy_j * [((p_j+1)*(x_i**p_j)*denominator_j) - (p_j*(x_i**(p_j-1))*numerator_j)] / (denominator_j ** 2)
+    int bottom_idx = index;	// i of x_i
+    int top_offset = (c * channels + n) * pooled_height_ * pooled_width_;
+    top_diff += top_offset;
+    p_data += top_offset;
+    numerator_data += top_offset;
+    denominator_data += top_offset;
+    denominator_pow2_data += top_offset;
+    for (int ph = phstart; ph < phend; ++ph) {		// sum up gradients w.r.t j
+      for (int pw = pwstart; pw < pwend; ++pw) {
+	int top_idx = ph * pooled_width_ + pw;		// j of p_j, y_j
+	Dtype x_pow_p_minus1 = (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]-1);
+	Dtype x_pow_p = x_pow_p_minus1 * p_data[top_idx];
+	// dL/dx_i
+	bottom_diff[index] += top_diff[top_idx] * 
+	   ( ((p_data[top_idx]+1) * x_pow_p * denominator_data[top_idx]) - (p_data[top_idx] * x_pow_p_minus1 * numerator_data[top_idx]) )
+	      / denominator_pow2_data[top_idx];
+      }
+    }
   }
 }
 
@@ -486,6 +526,9 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const Dtype* top_data = top[0]->gpu_data();
     Dtype* p_diff = bottom[1]->mutable_gpu_diff();
     const Dtype* p_data = bottom[1]->gpu_data();
+    // init p_diff
+    const int top_count = top[0]->count();
+    caffe_gpu_set(top_count, Dtype(0.), p_diff);
     // init numerator and denominator
     const Dtype* numerator_data = this->numerator.gpu_data();
     const Dtype* denominator_data = this->denominator.gpu_data();
@@ -495,8 +538,15 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     Dtype* denominator_pow2_data = denominator_pow2.mutable_gpu_data();
     caffe_gpu_sqrt(denominator.count(), denominator_data, denominator_pow2_data);
     // The main loop
-    DensePNormBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
-	count, bottom_data, bottom_diff, top_data, top_diff, p_data, p_diff,
+    // gradients w.r.t. p, loop with top's idx
+    DensePNormBackward_P<Dtype><<<CAFFE_GET_BLOCKS(top_count), CAFFE_CUDA_NUM_THREADS>>>(
+	top_count, bottom_data, top_data, top_diff, p_data, p_diff,
+	numerator_data, denominator_data, denominator_pow2_data,
+	bottom[0]->num(), channels_, height_, width_, pooled_height_, pooled_width_,
+	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_);
+    // gradients w.r.t. bottom[0], loop with bottom's idx
+    DensePNormBackward_data<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
+	count, bottom_data, bottom_diff, top_data, top_diff, p_data,
 	numerator_data, denominator_data, denominator_pow2_data,
 	bottom[0]->num(), channels_, height_, width_, pooled_height_, pooled_width_,
 	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_);
