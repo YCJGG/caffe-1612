@@ -62,6 +62,8 @@ class PoolingLayer : public Layer<Dtype> {
   // Used in dense p-norm pooling
   Blob<Dtype> numerator;
   Blob<Dtype> denominator;
+  Blob<Dtype> padded_bottom;
+  int padded_height_, padded_width_;
 };
 
 }  // namespace caffe

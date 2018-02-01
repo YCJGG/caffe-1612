@@ -141,6 +141,9 @@ void PoolingLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
     // multiple computations
     numerator.ReshapeLike(*top[0]);
     denominator.ReshapeLike(*top[0]);
+    padded_height_ = height_ + 2*pad_h_;
+    padded_width_ = width_ + 2*pad_w_;
+    padded_bottom.Reshape(bottom[0]->num(), channels_, padded_height_, padded_width_);
   }
 }
 
@@ -251,26 +254,37 @@ void PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     caffe_set(numerator.count(), Dtype(0), numerator_data);
     Dtype* denominator_data = this->denominator.mutable_cpu_data();
     caffe_set(denominator.count(), Dtype(0), denominator_data);
+    // bottom[0] padding
+    Dtype* padded_bottom_data = padded_bottom.mutable_cpu_data();
+    caffe_set(padded_bottom.count(), Dtype(0), padded_bottom_data);
+    for (int n = 0; n < bottom[0]->num(); ++n) {
+      for (int c = 0; c < channels_; ++c) {
+        for (int h = pad_h_; h < height_+pad_h_; ++h) {
+	    caffe_copy(width_, bottom_data, padded_bottom_data+pad_w_);
+        }
+      }
+      bottom_data += bottom[0]->offset(0, 1);
+      padded_bottom_data += padded_bottom.offset(0,1);
+    }
+    padded_bottom_data = padded_bottom.mutable_cpu_data();
     // The main loop
     // y = sum(x_i ** (p+1)) / sum(x_i ** p)
     for (int n = 0; n < bottom[0]->num(); ++n) {
       for (int c = 0; c < channels_; ++c) {
         for (int ph = 0; ph < pooled_height_; ++ph) {
           for (int pw = 0; pw < pooled_width_; ++pw) {
-            int hstart = ph * stride_h_ - pad_h_;
-            int wstart = pw * stride_w_ - pad_w_;
-            int hend = min(hstart + kernel_h_, height_);
-            int wend = min(wstart + kernel_w_, width_);
-            hstart = max(hstart, 0);
-            wstart = max(wstart, 0);
+            int hstart = ph * stride_h_;
+            int wstart = pw * stride_w_;
+            int hend = min(hstart + kernel_h_, padded_height_);
+            int wend = min(wstart + kernel_w_, padded_width_);
 	    Dtype tmp_numerator = 0;
 	    Dtype tmp_denominator = Dtype(FLT_MIN);	// avoid divided by 0
 	    int top_idx = ph * pooled_width_ + pw;
             for (int h = hstart; h < hend; ++h) {
               for (int w = wstart; w < wend; ++w) {
-		int bottom_idx = h * width_ + w;
-		tmp_numerator += (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]+1);
-		tmp_denominator += (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]);
+		int bottom_idx = h * padded_width_ + w;
+		tmp_numerator += (Dtype)pow(padded_bottom_data[bottom_idx], p_data[top_idx]+1);
+		tmp_denominator += (Dtype)pow(padded_bottom_data[bottom_idx], p_data[top_idx]);
               }
             }
 	    top_data[top_idx] = tmp_numerator / tmp_denominator;
@@ -282,7 +296,7 @@ void PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	p_data += bottom[1]->offset(0, 1);
 	numerator_data += numerator.offset(0, 1);
 	denominator_data += denominator.offset(0, 1);
-        bottom_data += bottom[0]->offset(0, 1);
+        padded_bottom_data += padded_bottom.offset(0,1);
         top_data += top[0]->offset(0, 1);
       }
     }
@@ -370,7 +384,7 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     break;
   // add on 2018-01-15, dense p_norm pooling
   case PoolingParameter_PoolMethod_DENSE_P_NORM:  {
-    const Dtype* bottom_data = bottom[0]->cpu_data();
+    const Dtype* padded_bottom_data = padded_bottom.cpu_data();
     const Dtype* top_data = top[0]->cpu_data();
     Dtype* p_diff = bottom[1]->mutable_cpu_diff();
     const Dtype* p_data = bottom[1]->cpu_data();
@@ -389,30 +403,31 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       for (int c = 0; c < channels_; ++c) {
         for (int ph = 0; ph < pooled_height_; ++ph) {
           for (int pw = 0; pw < pooled_width_; ++pw) {
-            int hstart = ph * stride_h_ - pad_h_;
-            int wstart = pw * stride_w_ - pad_w_;
-            int hend = min(hstart + kernel_h_, height_ + pad_h_);
-            int wend = min(wstart + kernel_w_, width_ + pad_w_);
-            hstart = max(hstart, 0);
-            wstart = max(wstart, 0);
-            hend = min(hend, height_);
-            wend = min(wend, width_);
+            int hstart = ph * stride_h_;
+            int wstart = pw * stride_w_;
+            int hend = min(hstart + kernel_h_, padded_height_);
+            int wend = min(wstart + kernel_w_, padded_width_);
 	    int top_idx = ph * pooled_width_ + pw;	// j of p_j, y_j
 	    Dtype sum1 = 0;				// sum_i(ln(x_i)*(x_i**(p_j+1))
 	    Dtype sum2 = 0;				// sum_i(ln(x_i)*(x_i**(p_j))
             for (int h = hstart; h < hend; ++h) {
               for (int w = wstart; w < wend; ++w) {
-		int bottom_idx = h * width_ + w;	// i of x_i
-		Dtype x_pow_p_minus1 = (Dtype)pow(bottom_data[bottom_idx], p_data[top_idx]-1);
+		int bottom_idx = h * padded_width_ + w;	// i of x_i
+		Dtype x_pow_p_minus1 = (Dtype)pow(padded_bottom_data[bottom_idx], p_data[top_idx]-1);
 		Dtype x_pow_p = x_pow_p_minus1 * p_data[top_idx];
 		Dtype x_pow_p_plus1 = x_pow_p * p_data[top_idx];
 		// dL/dx_i
-		bottom_diff[bottom_idx] += top_diff[top_idx] * 
-		  ( ((p_data[top_idx]+1) * x_pow_p * denominator_data[top_idx]) - (p_data[top_idx] * x_pow_p_minus1 * numerator_data[top_idx]) )
-		  / denominator_pow2_data[top_idx];
+		// directly crop out from padded gradient via idx transform
+		if ((h >= pad_h_) && (w >= pad_w_) && (h < height_ + pad_h_) && (w < width_ + pad_w_))
+		{
+		    bottom_diff[(h-pad_h_) * width_ + (w-pad_w_)] += top_diff[top_idx] * 
+		    	( ((p_data[top_idx]+1) * x_pow_p * denominator_data[top_idx])
+			 - (p_data[top_idx] * x_pow_p_minus1 * numerator_data[top_idx]) )
+		    	/ denominator_pow2_data[top_idx];
+		}
 		// dL/dp_j
-		sum1 += (Dtype)log(bottom_data[bottom_idx]) * x_pow_p_plus1;
-		sum2 += (Dtype)log(bottom_data[bottom_idx]) * x_pow_p;
+		sum1 += (Dtype)log(padded_bottom_data[bottom_idx]) * x_pow_p_plus1;
+		sum2 += (Dtype)log(padded_bottom_data[bottom_idx]) * x_pow_p;
               }
             }
 	    p_diff[top_idx] = top_diff[top_idx] * (sum1*denominator_data[top_idx] - sum2*numerator_data[top_idx]) / denominator_pow2_data[top_idx];
@@ -423,9 +438,9 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 	p_data += bottom[1]->offset(0, 1);
 	numerator_data += numerator.offset(0, 1);
 	denominator_data += denominator.offset(0, 1);
-        bottom_diff += bottom[0]->offset(0, 1);
+	bottom_diff += bottom[0]->offset(0, 1);
         top_diff += top[0]->offset(0, 1);
-        bottom_data += bottom[0]->offset(0, 1);
+        padded_bottom_data += padded_bottom.offset(0, 1);
         top_data += top[0]->offset(0, 1);
       }
     }
