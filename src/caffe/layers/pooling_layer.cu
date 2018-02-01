@@ -176,7 +176,7 @@ __global__ void DensePNormForward(const int nthreads,
     Dtype tmp_numerator = 0;
     Dtype tmp_denominator = Dtype(FLT_MIN);	// avoid divided by 0
     int top_idx = index;
-    padded_bottom_data += (c * channels + n) * padded_bottom_height_ * padded_bottom_width_;
+    padded_bottom_data += (n * channels + c) * padded_bottom_height_ * padded_bottom_width_;
     for (int h = hstart; h < hend; ++h) {
       for (int w = wstart; w < wend; ++w) {
 	int bottom_idx = h * padded_bottom_width_ + w;
@@ -204,9 +204,8 @@ __global__ void BottomPadding(const int nthreads,
     const int c = (index / bottom_width_ / bottom_height_) % channels;
     const int n = index / bottom_width_ / bottom_height_ / channels;
     
-    bottom_data += (n * channels + c) * bottom_height_ * bottom_width_;
     padded_bottom_data += (n * channels + c) * padded_bottom_height_ * padded_bottom_width_;
-    padded_bottom_data[(h+pad_h_) * padded_bottom_width_ + (w+pad_w_)] = bottom_data[h * bottom_width_ + w];
+    padded_bottom_data[(h+pad_h_) * padded_bottom_width_ + (w+pad_w_)] = bottom_data[index];
   }
 }
 
@@ -282,8 +281,8 @@ void PoolingLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     // The main loop
     DensePNormForward<Dtype><<<CAFFE_GET_BLOCKS(count),
 				 CAFFE_CUDA_NUM_THREADS>>>(
-	count, bottom_data, top_data, p_data, numerator_data, denominator_data,
-	bottom[0]->num(), channels_, height_, width_, pooled_height_, pooled_width_,
+	count, padded_bottom_data, top_data, p_data, numerator_data, denominator_data,
+	bottom[0]->num(), channels_, padded_height_, padded_width_, pooled_height_, pooled_width_,
 	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_);
     break;
   }
@@ -435,7 +434,7 @@ __global__ void DensePNormBackward_P(const int nthreads,
     int top_idx = index;	// j of p_j, y_j
     Dtype sum1 = 0;		// sum_i(ln(x_i)*(x_i**(p_j+1))
     Dtype sum2 = 0;		// sum_i(ln(x_i)*(x_i**(p_j))
-    int bottom_offset = (c * channels + n) * padded_bottom_height_ * padded_bottom_width_;
+    int bottom_offset = (n * channels + c) * padded_bottom_height_ * padded_bottom_width_;
     padded_bottom_data += bottom_offset;
     for (int h = hstart; h < hend; ++h) {
       for (int w = wstart; w < wend; ++w) {
@@ -477,8 +476,8 @@ __global__ void DensePNormBackward_data(const int nthreads,
     const int pwend = min(w / stride_w_ + 1, pooled_width_);
     // dL/dx_i = dL/dy_j * [((p_j+1)*(x_i**p_j)*denominator_j) - (p_j*(x_i**(p_j-1))*numerator_j)] / (denominator_j ** 2)
     int bottom_idx = index;	// i of x_i, namely (n, c, h, w)
-    bottom_diff += (c * channels + n) * bottom_height_ * bottom_width_;
-    int top_offset = (c * channels + n) * pooled_height_ * pooled_width_;
+    bottom_diff += (n * channels + c) * bottom_height_ * bottom_width_;
+    int top_offset = (n * channels + c) * pooled_height_ * pooled_width_;
     top_diff += top_offset;
     p_data += top_offset;
     numerator_data += top_offset;

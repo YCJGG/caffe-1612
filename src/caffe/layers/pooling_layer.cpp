@@ -259,12 +259,12 @@ void PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     caffe_set(padded_bottom.count(), Dtype(0), padded_bottom_data);
     for (int n = 0; n < bottom[0]->num(); ++n) {
       for (int c = 0; c < channels_; ++c) {
-        for (int h = pad_h_; h < height_+pad_h_; ++h) {
-	    caffe_copy(width_, bottom_data, padded_bottom_data+pad_w_);
+        for (int h = 0; h < height_; ++h) {
+	    caffe_copy(width_, bottom_data+h*width_, padded_bottom_data+(h+pad_h_)*padded_width_+pad_w_);
         }
+        bottom_data += bottom[0]->offset(0,1);
+        padded_bottom_data += padded_bottom.offset(0,1);
       }
-      bottom_data += bottom[0]->offset(0, 1);
-      padded_bottom_data += padded_bottom.offset(0,1);
     }
     padded_bottom_data = padded_bottom.mutable_cpu_data();
     // The main loop

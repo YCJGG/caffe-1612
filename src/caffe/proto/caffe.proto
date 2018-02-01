@@ -308,7 +308,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 161 (last added: shuffle_channel_param)
+// LayerParameter next available layer-specific ID: 162 (last added: double_sided_relu_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -416,6 +416,13 @@ message LayerParameter {
   optional KnowledgeDistillationParameter knowledge_distillation_param = 158;
   optional WeightedGradientParameter weighted_gradient_param = 159;
   optional ShuffleChannelParameter shuffle_channel_param = 160;
+  optional DoubleSidedReLUParameter double_sided_relu_param = 161;
+}
+
+// Used for thresholding p values for dense p-norm pooling - 2018-02-01
+message DoubleSidedReLUParameter {
+  optional float max_value = 1 [default = 3e38];
+  optional float min_value = 2 [default = -3e38];
 }
 
 // used for DUC_aggregation Layer - 2017-08-17
