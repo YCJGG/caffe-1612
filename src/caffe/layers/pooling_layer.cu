@@ -411,7 +411,7 @@ __global__ void StoPoolBackward(const int nthreads,
 
 // add on 2018-01-16, dense p_norm pooling backwarding
 template <typename Dtype>
-__global__ void DensePNormBackward_P(const int nthreads,
+__global__ void DensePNormBackward_P(const int nthreads, const Dtype data_min_value,
 	 const Dtype* padded_bottom_data, const Dtype* top_data, const Dtype* top_diff,
 	 const Dtype* p_data, Dtype* p_diff,
 	 const Dtype* numerator_data, const Dtype* denominator_data, const Dtype* denominator_pow2_data,
@@ -440,12 +440,15 @@ __global__ void DensePNormBackward_P(const int nthreads,
       for (int w = wstart; w < wend; ++w) {
 	int bottom_idx = h * padded_bottom_width_ + w;
 	Dtype x_pow_p = (Dtype)pow(padded_bottom_data[bottom_idx], p_data[top_idx]);
-	Dtype x_pow_p_plus1 = x_pow_p * p_data[top_idx];
-	sum1 += (Dtype)log(padded_bottom_data[bottom_idx]) * x_pow_p_plus1;
-	sum2 += (Dtype)log(padded_bottom_data[bottom_idx]) * x_pow_p;
+	Dtype x_pow_p_plus1 = x_pow_p * padded_bottom_data[bottom_idx];
+	// avoid x->0 in log()
+	Dtype bottom_data_value = padded_bottom_data[bottom_idx] < data_min_value ? data_min_value : padded_bottom_data[bottom_idx];
+	sum1 += (Dtype)log(bottom_data_value) * x_pow_p_plus1;
+	sum2 += (Dtype)log(bottom_data_value) * x_pow_p;
       }
     }
     p_diff[top_idx] = top_diff[top_idx] * (sum1*denominator_data[top_idx] - sum2*numerator_data[top_idx]) / denominator_pow2_data[top_idx];
+//printf("%d,%f,%f,%f\n",top_idx,sum1,sum2,denominator_data[top_idx]);
   }
 }
 
@@ -487,7 +490,7 @@ __global__ void DensePNormBackward_data(const int nthreads,
       for (int pw = pwstart; pw < pwend; ++pw) {
 	int top_idx = ph * pooled_width_ + pw;		// j of p_j, y_j
 	Dtype x_pow_p_minus1 = (Dtype)pow(padded_bottom_data[bottom_idx], p_data[top_idx]-1);
-	Dtype x_pow_p = x_pow_p_minus1 * p_data[top_idx];
+	Dtype x_pow_p = x_pow_p_minus1 * padded_bottom_data[bottom_idx];
 	// dL/dx_i
 	// directly crop out from padded gradient via idx transform
 	if ((h >= pad_h_) && (w >= pad_w_) && (h < bottom_height_ + pad_h_) && (w < bottom_width_ + pad_w_))
@@ -563,11 +566,11 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     Blob<Dtype> denominator_pow2;
     denominator_pow2.ReshapeLike(denominator);
     Dtype* denominator_pow2_data = denominator_pow2.mutable_gpu_data();
-    caffe_gpu_sqrt(denominator.count(), denominator_data, denominator_pow2_data);
+    caffe_gpu_powx(denominator.count(), denominator_data, Dtype(2), denominator_pow2_data);
     // The main loop
     // gradients w.r.t. p, loop with top's idx
     DensePNormBackward_P<Dtype><<<CAFFE_GET_BLOCKS(top_count), CAFFE_CUDA_NUM_THREADS>>>(
-	top_count, padded_bottom_data, top_data, top_diff, p_data, p_diff,
+	top_count, data_min, padded_bottom_data, top_data, top_diff, p_data, p_diff,
 	numerator_data, denominator_data, denominator_pow2_data,
 	bottom[0]->num(), channels_, padded_height_, padded_width_, pooled_height_, pooled_width_,
 	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_);

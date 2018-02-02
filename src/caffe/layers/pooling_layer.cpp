@@ -395,7 +395,8 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     Blob<Dtype> denominator_pow2;
     denominator_pow2.ReshapeLike(denominator);
     Dtype* denominator_pow2_data = denominator_pow2.mutable_cpu_data();
-    caffe_sqr(denominator.count(), denominator_data, denominator_pow2_data);
+    caffe_powx(denominator.count(), denominator_data, Dtype(2), denominator_pow2_data);
+
     // The main loop
     // dL/dx_i = dL/dy_j * [((p_j+1)*(x_i**p_j)*denominator_j) - (p_j*(x_i**(p_j-1))*numerator_j)] / (denominator_j ** 2)
     // dL/dp_j = dL/dy_j * [sum_i(ln(x_i)*(x_i**(p_j+1))*denominator_j - sum_i(ln(x_i)*(x_i**p_j))*numerator_j] / (denominator_j ** 2)
@@ -414,8 +415,8 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
               for (int w = wstart; w < wend; ++w) {
 		int bottom_idx = h * padded_width_ + w;	// i of x_i
 		Dtype x_pow_p_minus1 = (Dtype)pow(padded_bottom_data[bottom_idx], p_data[top_idx]-1);
-		Dtype x_pow_p = x_pow_p_minus1 * p_data[top_idx];
-		Dtype x_pow_p_plus1 = x_pow_p * p_data[top_idx];
+		Dtype x_pow_p = x_pow_p_minus1 * padded_bottom_data[bottom_idx];
+		Dtype x_pow_p_plus1 = x_pow_p * padded_bottom_data[bottom_idx];
 		// dL/dx_i
 		// directly crop out from padded gradient via idx transform
 		if ((h >= pad_h_) && (w >= pad_w_) && (h < height_ + pad_h_) && (w < width_ + pad_w_))
@@ -426,8 +427,10 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 		    	/ denominator_pow2_data[top_idx];
 		}
 		// dL/dp_j
-		sum1 += (Dtype)log(padded_bottom_data[bottom_idx]) * x_pow_p_plus1;
-		sum2 += (Dtype)log(padded_bottom_data[bottom_idx]) * x_pow_p;
+		// avoid x->0 in log()
+		Dtype bottom_data_value = padded_bottom_data[bottom_idx] < data_min ? data_min : padded_bottom_data[bottom_idx];
+		sum1 += (Dtype)log(bottom_data_value) * x_pow_p_plus1;
+		sum2 += (Dtype)log(bottom_data_value) * x_pow_p;
               }
             }
 	    p_diff[top_idx] = top_diff[top_idx] * (sum1*denominator_data[top_idx] - sum2*numerator_data[top_idx]) / denominator_pow2_data[top_idx];

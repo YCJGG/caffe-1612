@@ -58,12 +58,14 @@ class PoolingLayer : public Layer<Dtype> {
   Blob<Dtype> rand_idx_;
   Blob<int> max_idx_;
 
-  // add on 2018-01-15
+  // create on 2018-01-15
   // Used in dense p-norm pooling
   Blob<Dtype> numerator;
   Blob<Dtype> denominator;
   Blob<Dtype> padded_bottom;
   int padded_height_, padded_width_;
+  // avoid x->0 in log()
+  const Dtype data_min = 1e-7;
 };
 
 }  // namespace caffe
