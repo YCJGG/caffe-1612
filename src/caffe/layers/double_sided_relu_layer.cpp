@@ -41,5 +41,6 @@ STUB_GPU(DoubleSidedReLULayer);
 #endif
 
 INSTANTIATE_CLASS(DoubleSidedReLULayer);
+REGISTER_LAYER_CLASS(DoubleSidedReLU);
 
 }  // namespace caffe
