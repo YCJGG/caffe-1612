@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <vector>
+#include <math.h>
 
 #include "caffe/layers/pooling_layer.hpp"
 #include "caffe/util/math_functions.hpp"
@@ -185,8 +186,12 @@ __global__ void DensePNormForward(const int nthreads,
       }
     }
     top_data[top_idx] = tmp_numerator / tmp_denominator;
+    //avoid nan value
+    top_data[top_idx] = top_data[top_idx]!=top_data[top_idx] ? 0 : top_data[top_idx];
     numerator_data[top_idx] = tmp_numerator;
     denominator_data[top_idx] = tmp_denominator;
+//if (n==1 && c==0 && ph<5 && pw<5)
+//printf("%d,%d,%f,%f\n",ph,pw,denominator_data[top_idx],top_data[top_idx]);
   }
 }
 
@@ -447,8 +452,11 @@ __global__ void DensePNormBackward_P(const int nthreads, const Dtype data_min_va
 	sum2 += (Dtype)log(bottom_data_value) * x_pow_p;
       }
     }
-    p_diff[top_idx] = top_diff[top_idx] * (sum1*denominator_data[top_idx] - sum2*numerator_data[top_idx]) / denominator_pow2_data[top_idx];
-//printf("%d,%f,%f,%f\n",top_idx,sum1,sum2,denominator_data[top_idx]);
+    p_diff[top_idx] = top_diff[top_idx] * (sum1*denominator_data[top_idx] - sum2*numerator_data[top_idx]) / (denominator_pow2_data[top_idx]+1e-20);
+    // avoid nan value
+    p_diff[top_idx] = p_diff[top_idx]!=p_diff[top_idx] ? 0 : p_diff[top_idx];
+//if (n==1 && c==0 && ph<5 && pw<5)
+//printf("%d,%d,%d,%d,%d,%f,%f,%f,%f\n",index,n,c,ph,pw,sum1,sum2,denominator_pow2_data[top_idx],p_diff[top_idx]);
   }
 }
 
@@ -495,10 +503,13 @@ __global__ void DensePNormBackward_data(const int nthreads,
 	// directly crop out from padded gradient via idx transform
 	if ((h >= pad_h_) && (w >= pad_w_) && (h < bottom_height_ + pad_h_) && (w < bottom_width_ + pad_w_))
 	{
-		bottom_diff[(h-pad_h_) * bottom_width_ + (w-pad_w_)] += top_diff[top_idx] * 
+		int ori_bottom_idx = (h-pad_h_) * bottom_width_ + (w-pad_w_);
+		bottom_diff[ori_bottom_idx] += top_diff[top_idx] * 
 	 	  ( ((p_data[top_idx]+1) * x_pow_p * denominator_data[top_idx])
 		   - (p_data[top_idx] * x_pow_p_minus1 * numerator_data[top_idx]) )
-	 	  / denominator_pow2_data[top_idx];
+	 	  / (denominator_pow2_data[top_idx]+1e-20);
+		// avoid nan value
+		bottom_diff[ori_bottom_idx] = bottom_diff[ori_bottom_idx]!=bottom_diff[ori_bottom_idx] ? 0 : bottom_diff[ori_bottom_idx];
 	}
       }
     }
