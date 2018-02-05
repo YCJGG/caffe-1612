@@ -428,7 +428,7 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 		}
 		// dL/dp_j
 		// avoid x->0 in log()
-		Dtype bottom_data_value = padded_bottom_data[bottom_idx] < data_min ? data_min : padded_bottom_data[bottom_idx];
+		Dtype bottom_data_value = padded_bottom_data[bottom_idx];
 		sum1 += (Dtype)log(bottom_data_value) * x_pow_p_plus1;
 		sum2 += (Dtype)log(bottom_data_value) * x_pow_p;
               }

@@ -65,7 +65,7 @@ class PoolingLayer : public Layer<Dtype> {
   Blob<Dtype> padded_bottom;
   int padded_height_, padded_width_;
   // avoid x->0 in log()
-  const Dtype data_min = 1e-7;
+  // const Dtype data_min = 1e-7;
 };
 
 }  // namespace caffe
