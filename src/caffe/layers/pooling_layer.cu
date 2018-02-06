@@ -452,10 +452,15 @@ __global__ void DensePNormBackward_P(const int nthreads,
 	Dtype bottom_data_value = padded_bottom_data[bottom_idx];
 	sum1[top_idx] += (Dtype)log(bottom_data_value+0.001) * x_pow_p_plus1;
 	sum2[top_idx] += (Dtype)log(bottom_data_value+0.001) * x_pow_p;
+//if (n==1 && c==0 && ph<5 && pw<5)
+//printf("%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f\n",index,n,c,ph,pw,sum1,sum2,(Dtype)log(bottom_data_value+0.001),x_pow_p,bottom_data_value, p_data[top_idx]);
       }
     }
     p_diff[top_idx] = top_diff[top_idx] * (sum1[top_idx]*denominator_data[top_idx] - sum2[top_idx]*numerator_data[top_idx]) / (denominator_pow2_data[top_idx]+1e-20);
-//p_diff[top_idx] = isnan(p_diff[top_idx]) ? 0 : p_diff[top_idx];
+    // avoid nan value
+//if (n==1 && c==0 && ph<5 && pw<5)
+//printf("%d\n",(0/0)<1e-20);
+    //p_diff[top_idx] = isnan(p_diff[top_idx]) ? 0 : p_diff[top_idx];
 //if (n==1 && c==0 && ph<5 && pw<5)
 //printf("%d,%d,%d,%d,%d,%f,%f,%f,%f\n",index,n,c,ph,pw,sum1,sum2,denominator_pow2_data[top_idx],p_diff[top_idx]);
   }
@@ -567,9 +572,11 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const Dtype* top_data = top[0]->gpu_data();
     Dtype* p_diff = bottom[1]->mutable_gpu_diff();
     const Dtype* p_data = bottom[1]->gpu_data();
-    Blob<Dtype> sum1, sum2;
-    sum1.ReshapeLike(*top[0]);
-    sum2.ReshapeLike(*top[0]);
+
+	Blob<Dtype> sum1, sum2;
+	sum1.ReshapeLike(*top[0]);
+	sum2.ReshapeLike(*top[0]);
+
     // init p_diff
     const int top_count = top[0]->count();
     const int padded_bottom_count = padded_bottom.count();
@@ -591,16 +598,17 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_,
 	sum1.mutable_gpu_data(), sum2.mutable_gpu_data());
     Dtype* p_diff_cpu = bottom[1]->mutable_cpu_diff();
+    Dtype* p_data_cpu = bottom[1]->mutable_cpu_data();
     Dtype* denominator_pow2_data_cpu = denominator_pow2.mutable_cpu_data();
     const Dtype* top_diff_cpu = top[0]->cpu_diff();
     const Dtype* numerator_data_cpu = this->numerator.cpu_data();
     const Dtype* denominator_data_cpu = this->denominator.cpu_data();
     Dtype* sum1_cpu = sum1.mutable_cpu_data();
     Dtype* sum2_cpu = sum1.mutable_cpu_data();
-	//for (int i = 0; i < bottom[1]->count(); i++){
-	//	if (isnan(p_diff_cpu[i]))
-	//		LOG(INFO)<< denominator_pow2_data_cpu[i]<<','<<top_diff_cpu[i]<<','<<numerator_data_cpu[i]<<','<<numerator_data_cpu[i]<<','<<sum1_cpu[1]<<','<<sum2_cpu[i]<<','<<top[0]->cpu_data()[i];
-	//}
+	for (int i = 0; i < bottom[1]->count(); i++){
+		if (isnan(p_diff_cpu[i]))
+			LOG(INFO)<< bottom[1]->count()<<','<<denominator_pow2_data_cpu[i]<<','<<p_data_cpu[i]<<','<<top_diff_cpu[i]<<','<<numerator_data_cpu[i]<<','<<numerator_data_cpu[i]<<','<<sum1_cpu[1]<<','<<sum2_cpu[i]<<','<<top[0]->cpu_data()[i];
+	}
     // gradients w.r.t. bottom[0], loop with bottom's idx
     DensePNormBackward_data<Dtype><<<CAFFE_GET_BLOCKS(padded_bottom_count), CAFFE_CUDA_NUM_THREADS>>>(
 	padded_bottom_count, padded_bottom_data, bottom_diff, top_data, top_diff, p_data,
