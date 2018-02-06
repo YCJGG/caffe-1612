@@ -437,8 +437,8 @@ __global__ void DensePNormBackward_P(const int nthreads,
     int wend = min(wstart + kernel_w_, padded_bottom_width_);
     // dL/dp_j = dL/dy_j * [sum_i(ln(x_i)*(x_i**(p_j+1))*denominator_j - sum_i(ln(x_i)*(x_i**p_j))*numerator_j] / (denominator_j ** 2)
     int top_idx = index;	// j of p_j, y_j
-    Dtype sum1 = 0;		// sum_i(ln(x_i)*(x_i**(p_j+1))
-    Dtype sum2 = 0;		// sum_i(ln(x_i)*(x_i**(p_j))
+    Dtype sum1 = 0.0;		// sum_i(ln(x_i)*(x_i**(p_j+1))
+    Dtype sum2 = 0.0;		// sum_i(ln(x_i)*(x_i**(p_j))
     int bottom_offset = (n * channels + c) * padded_bottom_height_ * padded_bottom_width_;
     padded_bottom_data += bottom_offset;
     for (int h = hstart; h < hend; ++h) {
@@ -448,15 +448,17 @@ __global__ void DensePNormBackward_P(const int nthreads,
 	Dtype x_pow_p_plus1 = x_pow_p * padded_bottom_data[bottom_idx];
 	// avoid x->0 in log()
 	Dtype bottom_data_value = padded_bottom_data[bottom_idx];
-	sum1 += (Dtype)log(bottom_data_value) * x_pow_p_plus1;
-	sum2 += (Dtype)log(bottom_data_value) * x_pow_p;
+	sum1 += (Dtype)log(bottom_data_value+0.001) * x_pow_p_plus1;
+	sum2 += (Dtype)log(bottom_data_value+0.001) * x_pow_p;
+//if (n==1 && c==0 && ph<5 && pw<5)
+//printf("%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f\n",index,n,c,ph,pw,sum1,sum2,(Dtype)log(bottom_data_value+0.001),x_pow_p,bottom_data_value, p_data[top_idx]);
       }
     }
     p_diff[top_idx] = top_diff[top_idx] * (sum1*denominator_data[top_idx] - sum2*numerator_data[top_idx]) / (denominator_pow2_data[top_idx]+1e-20);
     // avoid nan value
 //if (n==1 && c==0 && ph<5 && pw<5)
 //printf("%d\n",(0/0)<1e-20);
-    p_diff[top_idx] = p_diff[top_idx]!=p_diff[top_idx] ? 0 : p_diff[top_idx];
+    p_diff[top_idx] = p_diff[top_idx]<1e-20 ? 0 : p_diff[top_idx];
 //if (n==1 && c==0 && ph<5 && pw<5)
 //printf("%d,%d,%d,%d,%d,%f,%f,%f,%f\n",index,n,c,ph,pw,sum1,sum2,denominator_pow2_data[top_idx],p_diff[top_idx]);
   }
