@@ -139,8 +139,8 @@ void PoolingLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
 	<< bottom[1]->width() << " vs. " << top[0]->width() << ")";
     // resize numerator and denominator to save internal results and avoid 
     // multiple computations
-    numerator.ReshapeLike(*top[0]);
-    denominator.ReshapeLike(*top[0]);
+    numerator.Reshape(top[0]->num(),top[0]->channels(),top[0]->height(),top[0]->width());
+    denominator.Reshape(top[0]->num(),top[0]->channels(),top[0]->height(),top[0]->width());
     padded_height_ = height_ + 2*pad_h_;
     padded_width_ = width_ + 2*pad_w_;
     padded_bottom.Reshape(bottom[0]->num(), channels_, padded_height_, padded_width_);
@@ -250,10 +250,10 @@ void PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   case PoolingParameter_PoolMethod_DENSE_P_NORM: {
     const Dtype* p_data = bottom[1]->cpu_data();
     // init numerator and denominator
-    Dtype* numerator_data = this->numerator.mutable_cpu_data();
-    caffe_set(numerator.count(), Dtype(0), numerator_data);
-    Dtype* denominator_data = this->denominator.mutable_cpu_data();
-    caffe_set(denominator.count(), Dtype(0), denominator_data);
+    double* numerator_data = this->numerator.mutable_cpu_data();
+    caffe_set(numerator.count(), double(0), numerator_data);
+    double* denominator_data = this->denominator.mutable_cpu_data();
+    caffe_set(denominator.count(), double(0), denominator_data);
     // bottom[0] padding
     Dtype* padded_bottom_data = padded_bottom.mutable_cpu_data();
     caffe_set(padded_bottom.count(), Dtype(0), padded_bottom_data);
@@ -277,8 +277,8 @@ void PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
             int wstart = pw * stride_w_;
             int hend = min(hstart + kernel_h_, padded_height_);
             int wend = min(wstart + kernel_w_, padded_width_);
-	    Dtype tmp_numerator = 0;
-	    Dtype tmp_denominator = Dtype(FLT_MIN);	// avoid divided by 0
+	    double tmp_numerator = 0;
+	    double tmp_denominator = Dtype(FLT_MIN);	// avoid divided by 0
 	    int top_idx = ph * pooled_width_ + pw;
             for (int h = hstart; h < hend; ++h) {
               for (int w = wstart; w < wend; ++w) {
@@ -389,13 +389,13 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     Dtype* p_diff = bottom[1]->mutable_cpu_diff();
     const Dtype* p_data = bottom[1]->cpu_data();
     // init numerator and denominator
-    const Dtype* numerator_data = this->numerator.cpu_data();
-    const Dtype* denominator_data = this->denominator.cpu_data();
+    const double* numerator_data = this->numerator.cpu_data();
+    const double* denominator_data = this->denominator.cpu_data();
     // get denominator**2 in advance
-    Blob<Dtype> denominator_pow2;
+    Blob<double> denominator_pow2;
     denominator_pow2.ReshapeLike(denominator);
-    Dtype* denominator_pow2_data = denominator_pow2.mutable_cpu_data();
-    caffe_powx(denominator.count(), denominator_data, Dtype(2), denominator_pow2_data);
+    double* denominator_pow2_data = denominator_pow2.mutable_cpu_data();
+    caffe_powx(denominator.count(), denominator_data, double(2), denominator_pow2_data);
 
     // The main loop
     // dL/dx_i = dL/dy_j * [((p_j+1)*(x_i**p_j)*denominator_j) - (p_j*(x_i**(p_j-1))*numerator_j)] / (denominator_j ** 2)

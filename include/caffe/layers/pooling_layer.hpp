@@ -60,8 +60,8 @@ class PoolingLayer : public Layer<Dtype> {
 
   // create on 2018-01-15
   // Used in dense p-norm pooling
-  Blob<Dtype> numerator;
-  Blob<Dtype> denominator;
+  Blob<double> numerator;
+  Blob<double> denominator;
   Blob<Dtype> padded_bottom;
   int padded_height_, padded_width_;
   // avoid x->0 in log()
