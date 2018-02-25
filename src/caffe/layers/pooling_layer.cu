@@ -622,6 +622,8 @@ fclose(fp);
 	numerator_data, denominator_data, denominator_pow2_data,
 	bottom[0]->num(), channels_, height_, width_, padded_height_, padded_width_, pooled_height_, pooled_width_,
 	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_);
+    // p_diff gradient scaling
+    caffe_gpu_scal(bottom[1]->count(), (Dtype)10, p_diff);
     break;
   }
   default:
