@@ -449,9 +449,11 @@ __global__ void DensePNormBackward_P(const int nthreads,
 	double bottom_data_value = (double)padded_bottom_data[bottom_idx]<1e-3 ? (double)1e-3 : (double)padded_bottom_data[bottom_idx];
 	sum1 += (double)log(bottom_data_value) * x_pow_p_plus1;
 	sum2 += (double)log(bottom_data_value) * x_pow_p;
+//printf("%f,%f,%f,%f,%f,%f,%f\n",(double)log(bottom_data_value) * x_pow_p_plus1,(double)log(bottom_data_value) * x_pow_p,(double)padded_bottom_data[bottom_idx],bottom_data_value,numerator_data[top_idx],denominator_data[top_idx],top_diff[top_idx]);
       }
     }
-    double tmp = (sum1*denominator_data[top_idx] - sum2*numerator_data[top_idx]) / (denominator_pow2_data[top_idx]+(double)1e-20);
+    double tmp = sum1/(denominator_data[top_idx]+(double)1e-34) - sum2*(numerator_data[top_idx] / (denominator_data[top_idx]+(double)1e-34) / (denominator_data[top_idx]+(double)1e-34));
+    //double tmp = (sum1*denominator_data[top_idx] - sum2*numerator_data[top_idx])  / (denominator_data[top_idx]+(double)1e-34) / (denominator_data[top_idx]+(double)1e-34);
     p_diff[top_idx] = top_diff[top_idx] * (Dtype)tmp;
   }
 }
@@ -497,13 +499,13 @@ __global__ void DensePNormBackward_data(const int nthreads,
 	if ((h >= pad_h_) && (w >= pad_w_) && (h < bottom_height_ + pad_h_) && (w < bottom_width_ + pad_w_))
 	{
 		int top_idx = ph * pooled_width_ + pw;		// j of p_j, y_j
-		double x_pow_p_minus1 = (double)pow((double)padded_bottom_data[bottom_idx], (double)p_data[top_idx]-1);
-		double x_pow_p = x_pow_p_minus1 * (double)padded_bottom_data[bottom_idx];
+		double x_pow_p_minus1 = (double)pow((double)padded_bottom_data[bottom_idx]+1e-10, (double)p_data[top_idx]-1);
+		double x_pow_p = (double)pow((double)padded_bottom_data[bottom_idx], (double)p_data[top_idx]);
 
 		int ori_bottom_idx = (h-pad_h_) * bottom_width_ + (w-pad_w_);
 		double tmp = ( ((double)(p_data[top_idx]+1) * x_pow_p * denominator_data[top_idx])
 		   - ((double)p_data[top_idx] * x_pow_p_minus1 * numerator_data[top_idx]) )
-	 	  / (denominator_pow2_data[top_idx]+(double)1e-34);
+	 	  / (denominator_data[top_idx]+(double)1e-34) / (denominator_data[top_idx]+(double)1e-34);
 		bottom_diff[ori_bottom_idx] += top_diff[top_idx] * (Dtype)tmp;
 	}
       }
@@ -571,7 +573,7 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     Blob<double> denominator_pow2;
     denominator_pow2.ReshapeLike(denominator);
     double* denominator_pow2_data = denominator_pow2.mutable_gpu_data();
-    caffe_gpu_powx(denominator.count(), denominator_data, double(2), denominator_pow2_data);
+    //caffe_gpu_powx(denominator.count(), denominator_data, double(2), denominator_pow2_data);
     // The main loop
     // gradients w.r.t. p, loop with top's idx
     DensePNormBackward_P<Dtype><<<CAFFE_GET_BLOCKS(top_count), CAFFE_CUDA_NUM_THREADS>>>(
@@ -616,6 +618,16 @@ fclose(fp);
 		}
 	}
 */
+	Dtype* p_diff_cpu = bottom[1]->mutable_cpu_diff();
+	for (int i = 0; i < bottom[1]->count(); i++){
+		if (isnan(p_diff_cpu[i])){
+			p_diff_cpu[i] = 0;
+			LOG(INFO)<<"p diff is nan at idx "<<i<<"/count "<<bottom[1]->count();
+		} else if (isinf(p_diff_cpu[i])){
+			p_diff_cpu[i] = 0;
+			LOG(INFO)<<"p diff is inf at idx "<<i<<"/count "<<bottom[1]->count();
+		}
+	}
     // gradients w.r.t. bottom[0], loop with bottom's idx
     DensePNormBackward_data<Dtype><<<CAFFE_GET_BLOCKS(padded_bottom_count), CAFFE_CUDA_NUM_THREADS>>>(
 	padded_bottom_count, padded_bottom_data, bottom_diff, top_data, top_diff, p_data,

@@ -87,6 +87,12 @@ void SGDSolver<Dtype>::ClipGradients() {
     sumsq_diff += net_params[i]->sumsq_diff();
   }
   const Dtype l2norm_diff = std::sqrt(sumsq_diff);
+//LOG(INFO)<<l2norm_diff;
+//if (l2norm_diff!=l2norm_diff){
+// for (int i = 0; i < net_params.size(); ++i) {
+//    LOG(INFO)<<net_params[i]->sumsq_diff()<<','<<i;
+// }
+//}
   if (l2norm_diff > clip_gradients) {
     Dtype scale_factor = clip_gradients / l2norm_diff;
     LOG(INFO) << "Gradient clipping: scaling down gradients (L2 norm "
