@@ -41,7 +41,7 @@ class BlobAlignLayer(caffe.Layer):
 	elif self.param_str == "biquintic":
 	    self.inter_order = 5
 	# open multiprocessing pool
-	self.pool = ThreadPool(8)
+	self.pool = ThreadPool(1)
 
     def reshape(self, bottom, top):
 	# top/result has the same height and width as the second bottom/input
