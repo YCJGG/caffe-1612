@@ -436,8 +436,8 @@ __global__ void DensePNormBackward_P(const int nthreads,
     int wend = min(wstart + kernel_w_, padded_bottom_width_);
     // dL/dp_j = dL/dy_j * [sum_i(ln(x_i)*(x_i**(p_j+1))*denominator_j - sum_i(ln(x_i)*(x_i**p_j))*numerator_j] / (denominator_j ** 2)
     int top_idx = index;	// j of p_j, y_j
-    Dtype sum1 = 0.0;		// sum_i(ln(x_i)*(x_i**(p_j+1))
-    Dtype sum2 = 0.0;		// sum_i(ln(x_i)*(x_i**(p_j))
+    double sum1 = 0.0;		// sum_i(ln(x_i)*(x_i**(p_j+1))
+    double sum2 = 0.0;		// sum_i(ln(x_i)*(x_i**(p_j))
     int bottom_offset = (n * channels + c) * padded_bottom_height_ * padded_bottom_width_;
     padded_bottom_data += bottom_offset;
     for (int h = hstart; h < hend; ++h) {
@@ -618,16 +618,69 @@ fclose(fp);
 		}
 	}
 */
+
+
+
 	Dtype* p_diff_cpu = bottom[1]->mutable_cpu_diff();
-	for (int i = 0; i < bottom[1]->count(); i++){
-		if (isnan(p_diff_cpu[i])){
+	for (int index = 0; index < bottom[1]->count(); index++){
+if (isnan(p_diff_cpu[index]) || isinf(p_diff_cpu[index])){
+    const Dtype* padded_bottom_data_cpu = padded_bottom.cpu_data();
+    const double* numerator_data_cpu = this->numerator.cpu_data();
+    const double* denominator_data_cpu = this->denominator.cpu_data();
+    const int pw = index % pooled_width_;
+    const int ph = (index / pooled_width_) % pooled_height_;
+    const int c = (index / pooled_width_ / pooled_height_) % channels_;
+    const int n = index / pooled_width_ / pooled_height_ / channels_;
+    int hstart = ph * stride_h_;
+    int wstart = pw * stride_w_;
+    int hend = min(hstart + kernel_h_, padded_height_);
+    int wend = min(wstart + kernel_w_, padded_width_);
+    int top_idx = index;	// j of p_j, y_j
+    double sum1 = 0.0;		// sum_i(ln(x_i)*(x_i**(p_j+1))
+    double sum2 = 0.0;		// sum_i(ln(x_i)*(x_i**(p_j))
+    int bottom_offset = (n * channels_ + c) * padded_height_ * padded_width_;
+    padded_bottom_data_cpu += bottom_offset;
+    for (int h = hstart; h < hend; ++h) {
+      for (int w = wstart; w < wend; ++w) {
+	int bottom_idx = h * padded_width_ + w;
+	double x_pow_p = (double)pow((double)padded_bottom_data_cpu[bottom_idx], (double)bottom[1]->mutable_cpu_data()[top_idx]);
+	double x_pow_p_plus1 = x_pow_p * (double)padded_bottom_data_cpu[bottom_idx];
+	double bottom_data_value = (double)padded_bottom_data_cpu[bottom_idx]<1e-3 ? (double)1e-3 : (double)padded_bottom_data_cpu[bottom_idx];
+	sum1 += (double)log(bottom_data_value) * x_pow_p_plus1;
+	sum2 += (double)log(bottom_data_value) * x_pow_p;
+      }
+    }
+    double tmp = sum1/(denominator_data_cpu[top_idx]+(double)1e-34) - sum2*(numerator_data_cpu[top_idx] / (denominator_data_cpu[top_idx]+(double)1e-34) / (denominator_data_cpu[top_idx]+(double)1e-34));
+    //p_diff[top_idx] = top_diff[top_idx] * (Dtype)tmp;
+    LOG(INFO)<<"--------------------";
+    LOG(INFO)<<"p_diff: "<<p_diff_cpu[top_idx]<<"\ttop_diff: "<<top[0]->cpu_diff()[top_idx];
+    LOG(INFO)<<"(Dtype)tmp: "<<(Dtype)tmp<<"\ttmp: "<<tmp;
+    LOG(INFO)<<"tmp term1: "<<sum1/(denominator_data_cpu[top_idx]+(double)1e-34)<<"\ttmp term2: "<<sum2*(numerator_data_cpu[top_idx] / (denominator_data_cpu[top_idx]+(double)1e-34) / (denominator_data_cpu[top_idx]+(double)1e-34));
+    LOG(INFO)<<"sum1: "<<sum1<<"\tsum2: "<<sum2<<"\tnumerator: "<<numerator_data_cpu[top_idx]<<"\tdenominator: "<<denominator_data_cpu[top_idx];
+    for (int h = hstart; h < hend; ++h) {
+      for (int w = wstart; w < wend; ++w) {
+	int bottom_idx = h * padded_width_ + w;
+	double x_pow_p = (double)pow((double)padded_bottom_data_cpu[bottom_idx], (double)bottom[1]->mutable_cpu_data()[top_idx]);
+	double x_pow_p_plus1 = x_pow_p * (double)padded_bottom_data_cpu[bottom_idx];
+	double bottom_data_value = (double)padded_bottom_data_cpu[bottom_idx]<1e-3 ? (double)1e-3 : (double)padded_bottom_data_cpu[bottom_idx];
+	LOG(INFO)<<"ori_data: "<<padded_bottom_data_cpu[bottom_idx]<<"\tbottom_data: "<<bottom_data_value;
+	LOG(INFO)<<"x_pow_p: "<<x_pow_p<<"\tx_pow_p_plus1: "<<x_pow_p_plus1<<"\tp: "<<bottom[1]->mutable_cpu_data()[top_idx];
+	LOG(INFO)<<"delta sum1: "<<(double)log(bottom_data_value) * x_pow_p_plus1<<"\tdelta sum2: "<<(double)log(bottom_data_value) * x_pow_p;
+      }
+    }
+}
+		/*if (isnan(p_diff_cpu[i])){
 			p_diff_cpu[i] = 0;
 			LOG(INFO)<<"p diff is nan at idx "<<i<<"/count "<<bottom[1]->count();
 		} else if (isinf(p_diff_cpu[i])){
 			p_diff_cpu[i] = 0;
 			LOG(INFO)<<"p diff is inf at idx "<<i<<"/count "<<bottom[1]->count();
-		}
+		}*/
 	}
+
+
+
+
     // gradients w.r.t. bottom[0], loop with bottom's idx
     DensePNormBackward_data<Dtype><<<CAFFE_GET_BLOCKS(padded_bottom_count), CAFFE_CUDA_NUM_THREADS>>>(
 	padded_bottom_count, padded_bottom_data, bottom_diff, top_data, top_diff, p_data,
@@ -635,7 +688,7 @@ fclose(fp);
 	bottom[0]->num(), channels_, height_, width_, padded_height_, padded_width_, pooled_height_, pooled_width_,
 	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_);
     // p_diff gradient scaling
-    caffe_gpu_scal(bottom[1]->count(), (Dtype)50, p_diff);
+    caffe_gpu_scal(bottom[1]->count(), (Dtype)100, p_diff);
     break;
   }
   default:
