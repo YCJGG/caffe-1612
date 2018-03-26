@@ -9,7 +9,7 @@
 
 #include "caffe/layers/base_conv_layer.hpp"
 
-namespace caffe {
+/*namespace caffe {
 
 /**
  * @brief Convolves the input image with a bank of learned filters,
@@ -27,7 +27,7 @@ namespace caffe {
  *   be filtered. col2im restores the output spatial structure by rolling up
  *   the output channel N' columns of the output matrix.
  */
-template <typename Dtype>
+/*template <typename Dtype>
 class DepthwiseConvolutionLayer : public BaseConvolutionLayer<Dtype> {
  public:
   /**
@@ -61,7 +61,7 @@ class DepthwiseConvolutionLayer : public BaseConvolutionLayer<Dtype> {
    *  - engine: convolution has CAFFE (matrix multiplication) and CUDNN (library
    *    kernels + stream parallelism) engines.
    */
-  explicit DepthwiseConvolutionLayer(const LayerParameter& param)
+/*  explicit DepthwiseConvolutionLayer(const LayerParameter& param)
       : BaseConvolutionLayer<Dtype>(param) {}
 
   virtual inline const char* type() const { return "DepthwiseConvolution"; }
@@ -77,9 +77,55 @@ class DepthwiseConvolutionLayer : public BaseConvolutionLayer<Dtype> {
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
   virtual inline bool reverse_dimensions() { return false; }
   virtual void compute_output_shape();
+
+  Blob<Dtype> weight_buffer_;
+  Blob<Dtype> weight_multiplier_;
+  Blob<Dtype> bias_buffer_;
+  Blob<Dtype> bias_multiplier_;
 };
 
 }  // namespace caffe
+*/
+
+namespace caffe {
+
+template <typename Dtype>
+class DepthwiseConvolutionLayer : public Layer<Dtype> {
+ public:
+  explicit DepthwiseConvolutionLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 1; }
+  virtual inline const char* type() const { return "DepthwiseConvolution"; }
+
+ protected:
+  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
+  unsigned int kernel_h_;
+  unsigned int kernel_w_;
+  unsigned int stride_h_;
+  unsigned int stride_w_;
+  unsigned int pad_h_;
+  unsigned int pad_w_;
+  unsigned int dilation_h_;
+  unsigned int dilation_w_;
+  Blob<Dtype> weight_buffer_;
+  Blob<Dtype> weight_multiplier_;
+  Blob<Dtype> bias_buffer_;
+  Blob<Dtype> bias_multiplier_;
+};
+
+}
 
 
 #endif /* INCLUDE_CAFFE_LAYERS_DEPTHWISE_CONV_LAYER_HPP_ */
