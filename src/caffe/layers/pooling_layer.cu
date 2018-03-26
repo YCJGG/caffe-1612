@@ -7,6 +7,30 @@
 
 namespace caffe {
 
+__device__ double atomicPrecisePow(double a, double b)
+{
+    // calculate approximation with fraction of the exponent
+    int e = (int) b;
+    union {
+	double d;
+	int x[2];
+    } u = { a };
+    u.x[1] = (int)((b - e) * (u.x[1] - 1072632447) + 1072632447);
+    u.x[0] = 0;
+    // exponentiation by squaring with the exponent's integer part
+    // double r = u.d makes everything much slower, not sure why
+    double r = 1.0;
+    while (e) {
+      if (e & 1) {
+        r *= a;
+      }
+      a *= a;
+      e >>= 1;
+    }
+
+    return r * u.d;
+}
+
 template <typename Dtype>
 __global__ void MaxPoolForward(const int nthreads,
     const Dtype* const bottom_data, const int num, const int channels,
@@ -180,7 +204,8 @@ __global__ void DensePNormForward(const int nthreads,
     for (int h = hstart; h < hend; ++h) {
       for (int w = wstart; w < wend; ++w) {
 	int bottom_idx = h * padded_bottom_width_ + w;
-	double x_pow_p = (double)pow((double)padded_bottom_data[bottom_idx], (double)p_data[top_idx]);
+	//double x_pow_p = (double)pow((double)padded_bottom_data[bottom_idx], (double)p_data[top_idx]);
+	double x_pow_p = (double)atomicPrecisePow((double)padded_bottom_data[bottom_idx], (double)p_data[top_idx]);
 	double x_pow_p_plus1 = x_pow_p * (double)padded_bottom_data[bottom_idx];
 	tmp_numerator += x_pow_p_plus1;
 	tmp_denominator += x_pow_p;
@@ -418,7 +443,7 @@ template <typename Dtype>
 __global__ void DensePNormBackward_P(const int nthreads,
 	 const Dtype* padded_bottom_data, const Dtype* top_data, const Dtype* top_diff,
 	 const Dtype* p_data, Dtype* p_diff,
-	 const double* numerator_data, const double* denominator_data, const double* denominator_pow2_data,
+	 const double* numerator_data, const double* denominator_data,
 	 const int bottom_num, const int channels,
 	 const int padded_bottom_height_, const int padded_bottom_width_,
 	 const int pooled_height_, const int pooled_width_,
@@ -443,7 +468,8 @@ __global__ void DensePNormBackward_P(const int nthreads,
     for (int h = hstart; h < hend; ++h) {
       for (int w = wstart; w < wend; ++w) {
 	int bottom_idx = h * padded_bottom_width_ + w;
-	double x_pow_p = (double)pow((double)padded_bottom_data[bottom_idx], (double)p_data[top_idx]);
+	//double x_pow_p = (double)pow((double)padded_bottom_data[bottom_idx], (double)p_data[top_idx]);
+	double x_pow_p = (double)atomicPrecisePow((double)padded_bottom_data[bottom_idx], (double)p_data[top_idx]);
 	double x_pow_p_plus1 = x_pow_p * (double)padded_bottom_data[bottom_idx];
 	// avoid x->0 in log(.)
 	double bottom_data_value = (double)padded_bottom_data[bottom_idx]<1e-3 ? (double)1e-3 : (double)padded_bottom_data[bottom_idx];
@@ -463,7 +489,7 @@ template <typename Dtype>
 __global__ void DensePNormBackward_data(const int nthreads,
 	 const Dtype* padded_bottom_data, Dtype* bottom_diff, const Dtype* top_data, const Dtype* top_diff,
 	 const Dtype* p_data,
-	 const double* numerator_data, const double* denominator_data, const double* denominator_pow2_data,
+	 const double* numerator_data, const double* denominator_data,
 	 const int bottom_num, const int channels,
 	 const int bottom_height_, const int bottom_width_,
 	 const int padded_bottom_height_, const int padded_bottom_width_,
@@ -492,7 +518,6 @@ __global__ void DensePNormBackward_data(const int nthreads,
     p_data += top_offset;
     numerator_data += top_offset;
     denominator_data += top_offset;
-    denominator_pow2_data += top_offset;
     for (int ph = phstart; ph < phend; ++ph) {		// sum up gradients w.r.t j
       for (int pw = pwstart; pw < pwend; ++pw) {
 	// dL/dx_i
@@ -500,8 +525,10 @@ __global__ void DensePNormBackward_data(const int nthreads,
 	if ((h >= pad_h_) && (w >= pad_w_) && (h < bottom_height_ + pad_h_) && (w < bottom_width_ + pad_w_))
 	{
 		int top_idx = ph * pooled_width_ + pw;		// j of p_j, y_j
-		double x_pow_p_minus1 = (double)pow((double)padded_bottom_data[bottom_idx]+1e-10, (double)p_data[top_idx]-1);
-		double x_pow_p = (double)pow((double)padded_bottom_data[bottom_idx], (double)p_data[top_idx]);
+		//double x_pow_p_minus1 = (double)pow((double)padded_bottom_data[bottom_idx]+1e-10, (double)p_data[top_idx]-1);
+		double x_pow_p_minus1 = (double)atomicPrecisePow((double)padded_bottom_data[bottom_idx]+1e-10, (double)p_data[top_idx]-1);
+		//double x_pow_p = (double)pow((double)padded_bottom_data[bottom_idx], (double)p_data[top_idx]);
+		double x_pow_p = (double)atomicPrecisePow((double)padded_bottom_data[bottom_idx], (double)p_data[top_idx]);
 
 		int ori_bottom_idx = (h-pad_h_) * bottom_width_ + (w-pad_w_);
 		double tmp = ((double)(p_data[top_idx]+1) * x_pow_p - (double)p_data[top_idx] * x_pow_p_minus1 * top_data[top_idx]) / (denominator_data[top_idx]+(double)1e-34);
@@ -572,15 +599,15 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const double* numerator_data = this->numerator.gpu_data();
     const double* denominator_data = this->denominator.gpu_data();
     // get denominator**2 in advance
-    Blob<double> denominator_pow2;
-    denominator_pow2.ReshapeLike(denominator);
-    double* denominator_pow2_data = denominator_pow2.mutable_gpu_data();
+    //Blob<double> denominator_pow2;
+    //denominator_pow2.ReshapeLike(denominator);
+    //double* denominator_pow2_data = denominator_pow2.mutable_gpu_data();
     //caffe_gpu_powx(denominator.count(), denominator_data, double(2), denominator_pow2_data);
     // The main loop
     // gradients w.r.t. p, loop with top's idx
     DensePNormBackward_P<Dtype><<<CAFFE_GET_BLOCKS(top_count), CAFFE_CUDA_NUM_THREADS>>>(
 	top_count, padded_bottom_data, top_data, top_diff, p_data, p_diff,
-	numerator_data, denominator_data, denominator_pow2_data,
+	numerator_data, denominator_data,
 	bottom[0]->num(), channels_, padded_height_, padded_width_, pooled_height_, pooled_width_,
 	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_);
 
@@ -686,7 +713,7 @@ if (isnan(p_diff_cpu[index]) || isinf(p_diff_cpu[index])){
     // gradients w.r.t. bottom[0], loop with bottom's idx
     DensePNormBackward_data<Dtype><<<CAFFE_GET_BLOCKS(padded_bottom_count), CAFFE_CUDA_NUM_THREADS>>>(
 	padded_bottom_count, padded_bottom_data, bottom_diff, top_data, top_diff, p_data,
-	numerator_data, denominator_data, denominator_pow2_data,
+	numerator_data, denominator_data,
 	bottom[0]->num(), channels_, height_, width_, padded_height_, padded_width_, pooled_height_, pooled_width_,
 	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_);
     // p_diff gradient scaling
