@@ -10,7 +10,7 @@ namespace caffe {
 __device__ double atomicPrecisePow(double a, double b)
 {
     // special value, b==1
-    if ((b-1)<1e-34)
+    if (abs(b-1)<1e-34)
 	return a;
     // calculate approximation with fraction of the exponent
     int e = (int) b;
