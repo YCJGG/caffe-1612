@@ -474,8 +474,9 @@ __global__ void DensePNormBackward_P(const int nthreads,
 	double x_pow_p_plus1 = x_pow_p * (double)padded_bottom_data[bottom_idx];
 	// avoid x->0 in log(.)
 	double bottom_data_value = (double)padded_bottom_data[bottom_idx]<1e-3 ? (double)1e-3 : (double)padded_bottom_data[bottom_idx];
-	sum1 += (double)log(bottom_data_value) * x_pow_p_plus1;
-	sum2 += (double)log(bottom_data_value) * x_pow_p;
+	bottom_data_value = (double)log(bottom_data_value);
+	sum1 += bottom_data_value * x_pow_p_plus1;
+	sum2 += bottom_data_value * x_pow_p;
       }
     }
     double tmp = (sum1 - sum2*top_data[top_idx]) / (denominator_data[top_idx]+(double)1e-34);
@@ -611,7 +612,7 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 	bottom[0]->num(), channels_, height_, width_, padded_height_, padded_width_, pooled_height_, pooled_width_,
 	kernel_h_, kernel_w_, stride_h_, stride_w_, pad_h_, pad_w_);
     // p_diff gradient scaling
-    caffe_gpu_scal(bottom[1]->count(), (Dtype)1000, p_diff);
+    caffe_gpu_scal(bottom[1]->count(), (Dtype)3000, p_diff);
     break;
   }
   default:
