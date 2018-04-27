@@ -450,10 +450,11 @@ message ResizeParameter {
   }
   // if use SIZE_GIVEN, output size must be given
   //    0 to be default and then resize factor become 1
-  optional float output_size = 3 [default = 0];
+  optional float output_height = 3 [default = 0];
+  optional float output_width = 4 [default = 0];
   // if use BLOB_ALIGN, be sure to give bottom[1]
   // if use FACTOR_GIVEN, resize factor is set directly [default=1]
-  optional float resize_factor = 4 [default = 1];
+  optional float resize_factor = 5 [default = 1];
 }
 
 message InflationFactorParameter {

@@ -42,8 +42,10 @@ class ResizeLayer : public Layer<Dtype> {
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
 
   Dtype resize_factor_;
-  int input_size_;
-  int output_size_;
+  int input_height_;
+  int input_width_;
+  int output_height_;
+  int output_width_;
 
 };
 
