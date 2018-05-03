@@ -29,7 +29,10 @@ class gatedPoolLayer(caffe.Layer):
 	self.blobs.add_blob(self.kernel_size, self.kernel_size)
 	self.blobs[0].data[:,:] = torch.randn(self.kernel_size, self.kernel_size).numpy()
 	self.weight = nn.Parameter(torch.from_numpy(self.blobs[0].data[:,:]).cuda(), requires_grad=True)
+<<<<<<< HEAD
 	#self.weight = self.weight.cuda()
+=======
+>>>>>>> 5f8aa2e7f238436c810c4668fbada04d85772ea0
 	return
 
     def reshape(self, bottom, top):
@@ -40,7 +43,10 @@ class gatedPoolLayer(caffe.Layer):
 	#tmp_weight = tmp_weight.cuda()
 	# get input
 	self.x = Variable(torch.from_numpy(bottom[0].data[:,:,:,:]).cuda(), requires_grad=True)
+<<<<<<< HEAD
 	#self.x = self.x.cuda()
+=======
+>>>>>>> 5f8aa2e7f238436c810c4668fbada04d85772ea0
 	# get alpha
 	alpha = F.conv2d(self.x, tmp_weight, stride=self.stride, padding=self.pad, groups=channel)
 	alpha = F.sigmoid(alpha)
@@ -57,11 +63,16 @@ class gatedPoolLayer(caffe.Layer):
 
     def backward(self, top, propagate_down, bottom):
 	# backward
+<<<<<<< HEAD
 	gradient=torch.from_numpy(top[0].diff[:,:,:,:])
 	gradient = Variable(gradient.cuda(),requires_grad=False)
 	self.y.backward(gradient = gradient)
 	# get diff w.r.t. data and weight
 	#print(self.x.grad.data.numpy())
+=======
+	self.y.backward(gradient=torch.from_numpy(top[0].diff[:,:,:,:]).cuda())
+	# get diff w.r.t. data and weight
+>>>>>>> 5f8aa2e7f238436c810c4668fbada04d85772ea0
 	bottom[0].diff[:,:,:,:] = self.x.grad.data.cpu().numpy()
 	self.blobs[0].diff[:,:] += self.weight.grad.data.cpu().numpy()	# accumulate weight's diff
 	self.y.detach_()

@@ -27,36 +27,41 @@ template <typename Dtype>
 void ResizeLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   // parse params and get resize factor
-  this->input_size_ = bottom[0]->height();
+  this->input_height_ = bottom[0]->height();
+  this->input_width_ = bottom[0]->width();
 
   ResizeParameter resize_param = this->layer_param_.resize_param();
   switch (resize_param.function_type()) {
 	case ResizeParameter_FunctionType_SIZE_GIVEN:
-		if (resize_param.output_size() <= 0) {
-		    LOG(INFO)<< "Illegal output size (" << resize_param.output_size() << "), use default resize factor 1.";
+		if (resize_param.output_height() <= 0 || resize_param.output_width() <= 0) {
+		    LOG(INFO)<< "Illegal output size (" << resize_param.output_height() << "," << resize_param.output_width() << "), use default resize factor 1.";
 		}
 		else {
-		    this->output_size_ = resize_param.output_size();
-		    this->resize_factor_ = (float)this->output_size_ / this->input_size_;
+		    this->output_height_ = resize_param.output_height();
+		    this->output_width_ = resize_param.output_width();
+		    this->resize_factor_ = (float)this->output_height_ / this->input_height_;
 		}
 		break;
 	case ResizeParameter_FunctionType_BLOB_ALIGN:
 		CHECK_EQ(bottom.size(), 2) << "When using BLOB_ALIGN option, bottom[1] must be given.";
-		this->output_size_ = bottom[1]->height();
-		this->resize_factor_ = (float)this->output_size_ / this->input_size_;
+		this->output_height_ = bottom[1]->height();
+		this->output_width_ = bottom[1]->width();
+		this->resize_factor_ = (float)this->output_height_ / this->input_height_;
 		break;
 	case ResizeParameter_FunctionType_FACTOR_GIVEN:
 		CHECK_GT(resize_param.resize_factor(), 0) << "Illegal resize factor (" << resize_param.resize_factor() << ").";
 		this->resize_factor_ = resize_param.resize_factor();
-		this->output_size_ = static_cast<int>(this->input_size_ * this->resize_factor_);
+		this->output_height_ = static_cast<int>(this->input_height_ * this->resize_factor_);
+		this->output_width_ = static_cast<int>(this->input_width_ * this->resize_factor_);
 		break;
 	default:
 		this->resize_factor_ = 1;
-		this->output_size_ = this->input_size_;
+		this->output_height_ = this->input_height_;
+		this->output_width_ = this->input_width_;
   }
 
   // reshape top (assume that all features are square)
-  top[0]->Reshape(bottom[0]->num(), bottom[0]->channels(), this->output_size_, this->output_size_);
+  top[0]->Reshape(bottom[0]->num(), bottom[0]->channels(), this->output_height_, this->output_width_);
 }
 
 template <typename Dtype>
@@ -71,13 +76,13 @@ void ResizeLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	case ResizeParameter_InterpolationType_NEAREST:
 		for (int n = 0; n < bottom[0]->num(); ++n) {
 		    for (int c = 0; c < bottom[0]->channels(); ++c) {
-			for (int rh = 0; rh < this->output_size_; ++rh) {
-			    for (int rw = 0; rw < this->output_size_; ++rw) {
+			for (int rh = 0; rh < this->output_height_; ++rh) {
+			    for (int rw = 0; rw < this->output_width_; ++rw) {
 				int h = int(rh / this->resize_factor_);
 				int w = int(rw / this->resize_factor_);
-				h = std::min(h, this->input_size_);
-				w = std::min(w, this->input_size_);
-				top_data[rh * this->output_size_ + rw] = bottom_data[h * this->input_size_ + w];
+				h = std::min(h, this->input_height_);
+				w = std::min(w, this->input_width_);
+				top_data[rh * this->output_width_ + rw] = bottom_data[h * this->input_width_ + w];
 			    }
 			}
 			// compute offset
@@ -89,17 +94,17 @@ void ResizeLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	case ResizeParameter_InterpolationType_BILINEAR:
 		for (int n = 0; n < bottom[0]->num(); ++n) {
 		    for (int c = 0; c < bottom[0]->channels(); ++c) {
-			for (int rh = 0; rh < this->output_size_; ++rh) {
-			    for (int rw = 0; rw < this->output_size_; ++rw) {
+			for (int rh = 0; rh < this->output_height_; ++rh) {
+			    for (int rw = 0; rw < this->output_width_; ++rw) {
 				float h = rh / this->resize_factor_;
 				float w = rw / this->resize_factor_;
 				//h = std::min(h, this->input_size_);
 				//w = std::min(w, this->input_size_);
-				int top_idx = rh * this->output_size_ + rw;
+				int top_idx = rh * this->output_width_ + rw;
 				top_data[top_idx] = 0;		// DO NOT forget to reset before accumulation
-				for (int n = MAX(static_cast<int>(h-1) + 1, 0); n < MIN(h + 1, this->input_size_); n++) {
-				    for (int m = MAX(static_cast<int>(w-1) + 1, 0); m < MIN(w + 1, this->input_size_); m++) {
-					top_data[top_idx] += bottom_data[n * this->input_size_ + m] * (1 - std::abs(w-m)) * (1 - std::abs(h-n));
+				for (int n = MAX(static_cast<int>(h-1) + 1, 0); n < MIN(h + 1, this->input_height_); n++) {
+				    for (int m = MAX(static_cast<int>(w-1) + 1, 0); m < MIN(w + 1, this->input_width_); m++) {
+					top_data[top_idx] += bottom_data[n * this->input_width_ + m] * (1 - std::abs(w-m)) * (1 - std::abs(h-n));
 				    }
 				}
 			    }
@@ -129,13 +134,13 @@ void ResizeLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 	case ResizeParameter_InterpolationType_NEAREST:
 		for (int n = 0; n < top[0]->num(); ++n) {
 		    for (int c = 0; c < top[0]->channels(); ++c) {
-			for (int h = 0; h < this->input_size_; ++h) {
-			    for (int w = 0; w < this->input_size_; ++w) {
+			for (int h = 0; h < this->input_height_; ++h) {
+			    for (int w = 0; w < this->input_width_; ++w) {
 				int rh = int(h * this->resize_factor_);
 				int rw = int(w * this->resize_factor_);
-				rh = std::min(rh, this->output_size_ - 1);
-				rw = std::min(rw, this->output_size_ - 1);
-				bottom_diff[h * this->input_size_ + w] = top_diff[rh * this->output_size_ + rw];
+				rh = std::min(rh, this->output_height_ - 1);
+				rw = std::min(rw, this->output_width_ - 1);
+				bottom_diff[h * this->input_width_ + w] = top_diff[rh * this->output_width_ + rw];
 			    }
 			}
 			// offset
@@ -147,41 +152,41 @@ void ResizeLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 	case ResizeParameter_InterpolationType_BILINEAR:
 		for (int n = 0; n < top[0]->num(); ++n) {
 		    for (int c = 0; c < top[0]->channels(); ++c) {
-			for (int rh = 0; rh < this->output_size_; ++rh) {
-			    for (int rw = 0; rw < this->output_size_; ++rw) {
+			for (int rh = 0; rh < this->output_height_; ++rh) {
+			    for (int rw = 0; rw < this->output_width_; ++rw) {
 				float h = rh / this->resize_factor_;
 				float w = rw / this->resize_factor_;
 
-				int top_idx = rh * this->output_size_ + rw;
+				int top_idx = rh * this->output_width_ + rw;
 				int h0 = std::max(int(h), 0);
 				int w0 = std::max(int(w), 0);
 				int h1 = 0;
 				float weight_h_h1 = 0;
 				float weight_w_w0 = std::max(1 - std::abs(w - w0), float (0));
 				float weight_h_h0 = std::max(1 - std::abs(h - h0), float (0));
-				if (h < this->input_size_-1) {				// h1 does not exceed input_size
-					h1 = std::min(int(h)+1, this->input_size_ - 1);
+				if (h < this->input_height_-1) {				// h1 does not exceed input_size
+					h1 = std::min(int(h)+1, this->input_height_ - 1);
 					weight_h_h1 = std::max(1 - std::abs(h - h1), float (0));
 					if (w0 == 0) {					// the first column
-						bottom_diff[h1 * this->input_size_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h1 * 2;
+						bottom_diff[h1 * this->input_width_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h1 * 2;
 					} else {
-						bottom_diff[h1 * this->input_size_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h1;
+						bottom_diff[h1 * this->input_width_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h1;
 					}
 				}
-				if (w < this->input_size_-1) {				// w1 does not exceed input_size
-					int w1 = std::min(int(w)+1, this->input_size_ - 1);
+				if (w < this->input_width_-1) {				// w1 does not exceed input_size
+					int w1 = std::min(int(w)+1, this->input_width_ - 1);
 					float weight_w_w1 = std::max(1 - std::abs(w - w1), float (0));
 					if (h0 == 0) {					// the first row
-						bottom_diff[h0 * this->input_size_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h0*2;
+						bottom_diff[h0 * this->input_width_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h0*2;
 					} else {
-						bottom_diff[h0 * this->input_size_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h0;
+						bottom_diff[h0 * this->input_width_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h0;
 					}
-					if (h < this->input_size_-1) {			// for the very left-bottom one
-						bottom_diff[h1 * this->input_size_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h1;
+					if (h < this->input_height_-1) {			// for the very left-bottom one
+						bottom_diff[h1 * this->input_width_ + w1] += top_diff[top_idx] * weight_w_w1 * weight_h_h1;
 					}
 				}
 
-				bottom_diff[h0 * this->input_size_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h0;
+				bottom_diff[h0 * this->input_width_ + w0] += top_diff[top_idx] * weight_w_w0 * weight_h_h0;
 			    }
 			}
 			// normalize
