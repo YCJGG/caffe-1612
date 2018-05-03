@@ -76,11 +76,11 @@ class detailPreservingPoolLayer(caffe.Layer):
 	# zero grad
 	if not self.I.grad is None:
 		self.I.grad.detach_()
-		self.I.grad.zero_()
+		self.I.grad.data.zero_()
 	if not self.alpha_.grad is None:
 		self.alpha_.grad.detach_()
-		self.alpha_.grad.zero_()
+		self.alpha_.grad.data.zero_()
 	if not self.lambda_.grad is None:
 		self.lambda_.grad.detach_()
-		self.lambda_.grad.zero_()
+		self.lambda_.grad.data.zero_()
 	return
