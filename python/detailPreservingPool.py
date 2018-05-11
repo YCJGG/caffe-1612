@@ -5,7 +5,7 @@
 # 	F. Saeedan, N. Weber, M. Goesele, S. Roth
 #	 Detail-Preserving Pooling in Deep Networks
 #	 In CVPR 2018
-# 
+#
 # Author: Wei Zhen @ HUST
 # Reimplement on 2018-05-02
 
@@ -44,10 +44,16 @@ class detailPreservingPoolLayer(caffe.Layer):
 	self.I = Variable(torch.from_numpy(bottom[0].data[:,:,:,:]).cuda(), requires_grad=True)
 
 	# I_bar
-	I_bar = F.upsample_nearest(F.avg_pool2d(self.I, self.kernel_size, stride=self.stride, padding=self.pad), size=self.I.size()[2:])
+	if self.stride != 1:
+            I_bar = F.upsample_nearest(F.avg_pool2d(self.I, self.kernel_size, stride=self.stride, padding=self.pad), size=self.I.size()[2:])
+        if self.stride == 1:
+            I_bar = F.avg_pool2d(self.I, self.kernel_size, stride=self.stride, padding=self.pad)
 	# x
 	x = F.relu(self.I - I_bar)**2 + 1e-3
-	x_bar = F.upsample_nearest(F.avg_pool2d(x, self.kernel_size, stride=self.stride, padding=self.pad), size=x.size()[2:])
+        if self.stride != 1:
+            x_bar = F.upsample_nearest(F.avg_pool2d(x, self.kernel_size, stride=self.stride, padding=self.pad), size=x.size()[2:])
+        if self.stride == 1:
+            x_bar = F.avg_pool2d(x, self.kernel_size, stride=self.stride, padding=self.pad)
 	# w
 	w = (x/x_bar)**tmp_lambda + tmp_alpha
 	w_bar = F.avg_pool2d(w, self.kernel_size, stride=self.stride, padding=self.pad)
@@ -76,11 +82,11 @@ class detailPreservingPoolLayer(caffe.Layer):
 	# zero grad
 	if not self.I.grad is None:
 		self.I.grad.detach_()
-		self.I.grad.data.zero_()
+		self.I.grad.zero_()
 	if not self.alpha_.grad is None:
 		self.alpha_.grad.detach_()
-		self.alpha_.grad.data.zero_()
+		self.alpha_.grad.zero_()
 	if not self.lambda_.grad is None:
 		self.lambda_.grad.detach_()
-		self.lambda_.grad.data.zero_()
+		self.lambda_.grad.zero_()
 	return
